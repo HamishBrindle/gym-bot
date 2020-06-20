@@ -220,8 +220,33 @@ export class BookingService {
       const meridiem = (hours < 12) ? 'am' : 'pm';
       const time = `${(hours > 12) ? hours - 12 : hours}:${(minutes < 10) ? `0${minutes}` : minutes}${meridiem}`;
       return this.reserve(date.format('MM/DD/YYYY'), time);
+    }, {
+      timezone: 'America/Los_Angeles',
     });
     jobs[cronExp] = job;
+    return true;
+  }
+
+  /**
+   * TODO: Delete this
+   *
+   * @param cronExp
+   */
+  async debug(cronExp: string): Promise<boolean> {
+    cron.schedule(cronExp, async () => {
+      console.log('Hey! This cron-job is popping off!');
+    });
+
+    const parsed = cronParser.parseExpression(cronExp);
+    const date = moment().add(3, 'days');
+    const prev = moment(parsed.prev().toDate()).tz(timezone);
+    const hours = prev.hours();
+    const minutes = prev.minutes();
+    const meridiem = (hours < 12) ? 'am' : 'pm';
+    const time = `${(hours > 12) ? hours - 12 : hours}:${(minutes < 10) ? `0${minutes}` : minutes}${meridiem}`;
+
+    console.log('Scheduling task for:', date, time);
+
     return true;
   }
 }

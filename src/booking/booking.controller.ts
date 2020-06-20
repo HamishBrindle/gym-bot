@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Query, Post,
+  Controller, Query, Post,
 } from '@nestjs/common';
 import { BookingService } from './booking.service';
 
@@ -9,8 +9,7 @@ export class BookingController {
 
   @Post('reserve')
   async reserve(
-    @Query('date') date: string,
-      @Query('time') time: string,
+    @Query('date') date: string, @Query('time') time: string,
   ): Promise<string> {
     if (!date || !time) {
       throw Error('Unable to reserve appointments without `date` or `time` parameters');
@@ -18,10 +17,17 @@ export class BookingController {
     return this.bookingService.reserve(date, time);
   }
 
-  @Get('schedule')
+  @Post('schedule')
   async schedule(
   @Query('cron') cron: string,
   ) {
     return this.bookingService.schedule(cron);
+  }
+
+  @Post('debug')
+  async debug(
+  @Query('cron') cron: string,
+  ) {
+    return this.bookingService.debug(cron);
   }
 }
