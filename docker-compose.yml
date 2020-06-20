@@ -1,0 +1,47 @@
+version: '3.7'
+
+services:
+  server:
+    container_name: gym-bot-server
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    command: npm run start:dev
+    env_file:
+      - .env
+    networks:
+      - webnet
+    depends_on:
+      - redis
+      - db
+
+  db:
+    container_name: gym-bot-db
+    image: mysql:5.7.26
+    restart: always
+    networks:
+      - webnet
+    ports:
+      - ${MYSQL_EXT_PORT}:${MYSQL_INT_PORT}
+    environment:
+      MYSQL_ROOT_USER: ${MYSQL_ROOT_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      
+  redis:
+    container_name: gym-bot-redis
+    image: redis
+    restart: always
+    networks:
+      - webnet
+    ports:
+      - 6310:6308
+    command: redis-server --requirepass dev
+
+networks:
+  webnet:
