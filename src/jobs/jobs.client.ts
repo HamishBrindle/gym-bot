@@ -62,7 +62,7 @@ export class JobsClient {
    */
   public add(user: User, cronExp: string, cb: () => void, options?: cron.ScheduleOptions) {
     const existingJob = this.get(user, cronExp);
-    if (!existingJob) {
+    if (existingJob) {
       throw Error('Unable to schedule another job with existing expression');
     }
 
@@ -157,7 +157,19 @@ export class JobsClient {
    * @param cronExp
    */
   public get(user: User, cronExp: string): cron.ScheduledTask | undefined {
-    return this.jobs[user.id][cronExp];
+    return this.jobs[user.id]?.[cronExp];
+  }
+
+  /**
+   * Get all of the existing jobs' cron-expressions
+   *
+   * @param user
+   */
+  public getAllExpressions(user: User): string[] {
+    if (!this.jobs[user.id]) {
+      return [];
+    }
+    return Object.keys(this.jobs[user.id]);
   }
 
   /**

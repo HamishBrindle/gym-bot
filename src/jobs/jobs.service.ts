@@ -32,8 +32,8 @@ export class JobsService {
       status: this.getStatus(user, cronExp),
       hasNext: parsed.hasNext(),
       hasPrevious: parsed.hasPrev(),
-      next: parsed.next.toString(),
-      previous: parsed.prev.toString(),
+      next: parsed.next().toString(),
+      previous: parsed.prev().toString(),
     };
   }
 
@@ -89,15 +89,6 @@ export class JobsService {
   }
 
   /**
-   * Get all of the existing jobs' cron-expressions
-   *
-   * @param user
-   */
-  public getAllExpressions(user: User): string[] {
-    return Object.keys(this.jobsClient.jobs[user.id]);
-  }
-
-  /**
    * Parse a job's expression and get a interactable object to
    * explore the expression's upcoming dates/times
    *
@@ -113,7 +104,7 @@ export class JobsService {
    * @param user
    */
   async find(user: User) {
-    const expressions = this.getAllExpressions(user);
+    const expressions = this.jobsClient.getAllExpressions(user);
     return Bluebird.mapSeries(
       expressions,
       (expression) => this.getSummary(user, expression),

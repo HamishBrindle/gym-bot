@@ -1,5 +1,5 @@
 import {
-  Controller, Query, Post, UseGuards, Delete,
+  Controller, Post, UseGuards, Delete, Param, Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CurrentUser } from 'src/shared/decorators/user-info.decorator';
@@ -14,30 +14,19 @@ export class BookingController {
 
   @UseGuards(JwtAuthGuard)
   @Post('reserve')
-  async reserve(
-    @Query('date') date: string, @Query('time') time: string,
-  ): Promise<string> {
-    if (!date || !time) {
-      throw Error('Unable to reserve appointments without `date` or `time` parameters');
-    }
+  async reserve(@Query('date') date: string, @Query('time') time: string) {
     return this.bookingService.reserve(date, time);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('schedule')
-  async schedule(
-  @Query('cron') cron: string,
-    @CurrentUser() currentUser: User,
-  ) {
-    return this.bookingService.schedule(currentUser, cron);
+  @Post('schedule/:cron')
+  async schedule(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
+    return this.bookingService.schedule(currentUser, cronExp);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete('cancel')
-  async cancel(
-  @Query('cron') cron: string,
-    @CurrentUser() currentUser: User,
-  ) {
-    return this.bookingService.cancel(currentUser, cron);
+  @Delete('cancel/:cron')
+  async cancel(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
+    return this.bookingService.cancel(currentUser, cronExp);
   }
 }
