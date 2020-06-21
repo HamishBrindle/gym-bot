@@ -40,10 +40,10 @@ export class AuthService {
    * @param user User record
    */
   async login(user: any) {
-    const { email, id } = user;
     const payload = {
-      email,
-      sub: id,
+      ...user,
+      password: undefined,
+      sub: user.id,
     };
     return {
       accessToken: this.jwtService.sign(payload),
