@@ -33,4 +33,6 @@ export class User extends BaseEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // TODO: Add all the sensitive information for a gym booking account
 }

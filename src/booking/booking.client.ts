@@ -25,7 +25,7 @@ export class BookingClient {
   private readonly url = 'https://www.myiclubonline.com/iclub/members/signin';
 
   /**
-   * Jobs Provider factory
+   * Create a BookingClient provider
    */
   public static createProvider() {
     return {
@@ -43,6 +43,7 @@ export class BookingClient {
   public async reserve(date: string, time: string): Promise<string> {
     if (!this.url) throw Error('Cannot reserve without a properly defined URL');
 
+    // TODO: Move all this info out into the DB for a User
     const username = 'hamishbrindle';
     const password = 'Yellow6188';
 

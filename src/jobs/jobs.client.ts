@@ -24,7 +24,7 @@ export class JobsClient {
   public length: number = 0;
 
   /**
-   * Jobs Provider factory
+   * Create a JobsClient provider
    */
   public static createProvider() {
     return {
