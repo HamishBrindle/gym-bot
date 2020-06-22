@@ -17,6 +17,7 @@ module.exports = {
     'import/no-cycle': 'off',
     'import/prefer-default-export': 'off',
     'no-underscore-dangle': 'off',
+    'no-param-reassign': 'off',
 
     // JSDoc
     'jsdoc/require-param-description': 0, // Too annoying

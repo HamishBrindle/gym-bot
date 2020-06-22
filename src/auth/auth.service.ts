@@ -24,6 +24,16 @@ export class AuthService {
 
     const foundUser = await this.usersService.findOne({
       email,
+    }, {
+      select: [
+        'id',
+        'firstName',
+        'lastName',
+        'email',
+        'password',
+        'createdAt',
+        'updatedAt',
+      ],
     });
 
     if (!foundUser) return null;
@@ -58,7 +68,8 @@ export class AuthService {
   async register(createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
     const payload = {
-      email: user.email,
+      ...user,
+      password: undefined,
       sub: user.id,
     };
     return {

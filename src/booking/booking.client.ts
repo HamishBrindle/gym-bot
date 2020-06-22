@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import Bluebird from 'bluebird';
 import moment from 'moment-timezone';
 import { Injectable } from '@nestjs/common';
+import { Account } from 'src/accounts/accounts.entity';
 
 /**
  * Search Dates
@@ -37,15 +38,12 @@ export class BookingClient {
   /**
    * Reserve an appointment at the gym by providing date and time
    *
+   * @param account
    * @param date Date in the format of MM/DD/YYYY
    * @param time Time in the format of HH:MM(am|pm)
    */
-  public async reserve(date: string, time: string): Promise<string> {
-    if (!this.url) throw Error('Cannot reserve without a properly defined URL');
-
-    // TODO: Move all this info out into the DB for a User
-    const username = 'hamishbrindle';
-    const password = 'Yellow6188';
+  public async reserve(account: Account, date: string, time: string): Promise<string> {
+    const { username, password } = account;
 
     const bookingMoment = moment(date, 'MM/DD/YYYY').locale('en-ca');
     const bookingDate = bookingMoment.format('MM/DD/YYYY');

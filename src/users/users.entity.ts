@@ -5,7 +5,11 @@ import {
   BaseEntity,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
+  OneToMany,
 } from 'typeorm';
+import { Account } from 'src/accounts/accounts.entity';
+import { Job } from 'src/jobs/jobs.entity';
 
 @Entity()
 export class User extends BaseEntity {
@@ -25,14 +29,20 @@ export class User extends BaseEntity {
   })
   email: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
+
+  @OneToOne(() => Account, (account: Account) => account.user, {
+    eager: true,
+  })
+  account: Account;
+
+  @OneToMany(() => Job, (job) => job.user)
+  jobs: Job[];
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  // TODO: Add all the sensitive information for a gym booking account
 }

@@ -2,12 +2,20 @@ import { Injectable, Inject } from '@nestjs/common';
 import cron from 'node-cron';
 import { User } from 'src/users/users.entity';
 import Bluebird from 'bluebird';
-import { JobsClient } from './jobs.client';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { JobsClient, JobsStatus } from './jobs.client';
+import { Job } from './jobs.entity';
 
 @Injectable()
 export class JobsService {
   @Inject('JOBS_CLIENT')
   private readonly jobsClient: JobsClient;
+
+  constructor(
+    @InjectRepository(Job)
+    private readonly jobsRepository: Repository<Job>,
+  ) {}
 
   /**
    * Get a job's status
@@ -15,7 +23,7 @@ export class JobsService {
    * @param user
    * @param cronExp
    */
-  public getStatus(user: User, cronExp: string): string {
+  public getStatus(user: User, cronExp: string): JobsStatus {
     return this.jobsClient.getStatus(user, cronExp);
   }
 
@@ -54,8 +62,17 @@ export class JobsService {
    * @param cb
    * @param options
    */
-  public add(user: User, cronExp: string, cb: () => void, options?: cron.ScheduleOptions) {
-    return this.jobsClient.add(user, cronExp, cb, options);
+  public async add(user: User, cronExp: string, cb: () => void, options?: cron.ScheduleOptions) {
+    const success = this.jobsClient.add(user, cronExp, cb, options);
+    if (success) {
+      const status = this.getStatus(user, cronExp);
+      await this.jobsRepository.create({
+        user,
+        expression: cronExp,
+        status,
+      });
+    }
+    return success;
   }
 
   /**
@@ -64,8 +81,17 @@ export class JobsService {
    * @param user
    * @param cronExp
    */
-  public destroy(user: User, cronExp: string) {
-    return this.jobsClient.destroy(user, cronExp);
+  public async destroy(user: User, cronExp: string) {
+    const success = this.jobsClient.destroy(user, cronExp);
+    if (success) {
+      await this.jobsRepository.delete({
+        user: {
+          id: user.id,
+        },
+        expression: cronExp,
+      });
+    }
+    return success;
   }
 
   /**

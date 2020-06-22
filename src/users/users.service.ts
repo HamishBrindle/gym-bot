@@ -49,7 +49,9 @@ export class UsersService {
   async findOne(args: IFindArguments, options: FindOneOptions = {}): Promise<User | null> {
     const foundUser = await this.usersRepository.findOne({
       ...options,
-      where: { ...args },
+      where: {
+        ...args,
+      },
     } as FindOneOptions);
 
     if (!foundUser) {
