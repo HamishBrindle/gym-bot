@@ -10,7 +10,7 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     ports:
-      - ${SERVER_PORT}:${SERVER_PORT}
+      - ${SERVER_EXT_PORT}:${SERVER_INT_PORT}
     command: npm run start:dev
     env_file:
       - .env
@@ -32,16 +32,6 @@ services:
       MYSQL_ROOT_USER: ${MYSQL_ROOT_USER}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      
-  redis:
-    container_name: gym-bot-redis
-    image: redis
-    restart: always
-    networks:
-      - webnet
-    ports:
-      - 6310:6308
-    command: redis-server --requirepass dev
 
 networks:
   webnet:
