@@ -20,8 +20,7 @@ RUN apt-get update \
 
 COPY package*.json ./
 
-RUN npm install && \
-    npm install -g @nestjs/cli
+RUN npm install --only=development
 
 COPY . .
 
