@@ -5,6 +5,5 @@ services:
     build:
       context: .
       target: production
-    command: null
     env_file:
       - .env
