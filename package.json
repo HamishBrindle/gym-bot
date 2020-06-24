@@ -55,7 +55,6 @@
     "puppeteer": "^3.3.0",
     "redis": "^3.0.2",
     "reflect-metadata": "^0.1.13",
-    "rimraf": "^3.0.2",
     "rxjs": "^6.5.4",
     "typeorm": "^0.2.25",
     "typeorm-seeding": "^1.6.1"
