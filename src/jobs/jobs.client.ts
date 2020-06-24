@@ -60,7 +60,12 @@ export class JobsClient {
    * @param cb
    * @param options
    */
-  public add(user: User, cronExp: string, cb: () => void, options?: cron.ScheduleOptions) {
+  public add(
+    user: User,
+    cronExp: string,
+    cb: () => void,
+    options?: cron.ScheduleOptions,
+  ): JobsSummary | null {
     const existingJob = this.get(user, cronExp);
     if (existingJob) {
       throw Error('Unable to schedule another job with existing expression');
@@ -78,10 +83,10 @@ export class JobsClient {
       const job = this.client.schedule(cronExp, cb, options);
       this.jobs[user.id][cronExp] = job;
       this.length += 1;
-      return true;
+      return this.getSummary(user, cronExp);
     } catch (error) {
       console.error(error);
-      return false;
+      return null;
     }
   }
 
@@ -91,17 +96,17 @@ export class JobsClient {
    * @param user
    * @param cronExp
    */
-  public start(user: User, cronExp: string): boolean {
+  public start(user: User, cronExp: string): JobsSummary | null {
     const job = this.get(user, cronExp);
     if (!job) {
       throw Error('Unable to start job because it doesn\'t exist');
     }
     try {
       job.start();
-      return true;
+      return this.getSummary(user, cronExp);
     } catch (error) {
       console.error(error);
-      return false;
+      return null;
     }
   }
 
@@ -111,17 +116,17 @@ export class JobsClient {
    * @param user
    * @param cronExp
    */
-  public stop(user: User, cronExp: string): boolean {
+  public stop(user: User, cronExp: string): JobsSummary | null {
     const job = this.get(user, cronExp);
     if (!job) {
       throw Error('Unable to stop job because it doesn\'t exist');
     }
     try {
       job.stop();
-      return true;
+      return this.getSummary(user, cronExp);
     } catch (error) {
       console.error(error);
-      return false;
+      return null;
     }
   }
 
@@ -131,22 +136,24 @@ export class JobsClient {
    * @param user
    * @param cronExp
    */
-  public destroy(user: User, cronExp: string): boolean {
+  public destroy(user: User, cronExp: string): JobsSummary | null {
     const job = this.get(user, cronExp);
     if (!job) {
       throw Error('Unable to destroy job because it doesn\'t exist');
     }
     try {
+      const summary = this.getSummary(user, cronExp);
       job.destroy();
       delete this.jobs[user.id][cronExp];
       if (Object.keys(this.jobs[user.id]).length === 0) {
         delete this.jobs[user.id];
       }
       this.length -= 1;
-      return true;
+      summary.status = 'destroyed';
+      return summary;
     } catch (error) {
       console.error(error);
-      return false;
+      return null;
     }
   }
 
@@ -189,6 +196,24 @@ export class JobsClient {
   }
 
   /**
+   * Get a job's status
+   *
+   * @param user
+   * @param cronExp
+   */
+  public getSummary(user: User, cronExp: string): JobsSummary {
+    const parsed = this.parseExpression(cronExp);
+    return {
+      status: this.getStatus(user, cronExp),
+      expression: cronExp,
+      hasNext: parsed.hasNext(),
+      hasPrevious: parsed.hasPrev(),
+      next: parsed.next().toString(),
+      previous: parsed.prev().toString(),
+    };
+  }
+
+  /**
    * Parse a cron-expression and return an iterable CronExpression
    * object
    *
@@ -212,3 +237,30 @@ export type JobsMap = {
  * All of the status' a job can have at any given time
  */
 export type JobsStatus = 'stopped' | 'destroyed' | 'running' | 'scheduled' | 'failed';
+
+export type JobsSummary = {
+  /**
+   * Current status of the job
+   */
+  status: JobsStatus;
+  /**
+   * Cron-job expression string
+   */
+  expression: string;
+  /**
+   * Expression as a `next` execution scheduled
+   */
+  hasNext: boolean;
+  /**
+   * Expression as a `previous` execution scheduled
+   */
+  hasPrevious: boolean;
+  /**
+   * Next scheduled execution date
+   */
+  next: string;
+  /**
+   * Previous scheduled execution date
+   */
+  previous: string;
+};
