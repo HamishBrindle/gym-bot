@@ -85,6 +85,7 @@
     "eslint-plugin-jsdoc": "^27.1.2",
     "jest": "26.0.1",
     "supertest": "^4.0.2",
+    "rimraf": "^3.0.2",
     "ts-jest": "26.1.0",
     "ts-loader": "^6.2.1",
     "ts-node": "^8.6.2",
