@@ -17,7 +17,6 @@ services:
     networks:
       - webnet
     depends_on:
-      - redis
       - db
 
   db:
