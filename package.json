@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "rm -rf dist",
+    "prebuild": "rm -rf dist && printenv",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -26,8 +26,7 @@
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "generate": "graphql-codegen",
     "seed": "ts-node -r tsconfig-paths/register -r ts-node/register ./node_modules/typeorm-seeding/dist/cli.js seed -n ./ormconfig.js",
-    "seed:reset": "npm run mysql:dev:reset && npm run seed",
-    "ss": "echo $SECRET"
+    "seed:reset": "npm run mysql:dev:reset && npm run seed"
   },
   "dependencies": {
     "@nestjs/common": "^7.0.0",
