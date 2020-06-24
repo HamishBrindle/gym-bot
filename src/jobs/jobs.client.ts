@@ -14,6 +14,11 @@ export class JobsClient {
   private client = cron;
 
   /**
+   * Cron-job object
+   */
+  private parser = cronParser;
+
+  /**
    * Map of jobs currently running in memory
    */
   public jobs: JobsMap = {};
@@ -35,6 +40,8 @@ export class JobsClient {
 
   /**
    * Validate an cron-expression
+   *
+   * TODO: Wtf... this doesn't work
    *
    * @param cronExp
    */
@@ -77,6 +84,13 @@ export class JobsClient {
     }
 
     try {
+      /**
+       * Because our validator doesn't seem to want to catch everything,
+       * parse the expression before it goes in as a Job - the parser is
+       * catching more issues and will throw an error
+       */
+      this.parseExpression(cronExp);
+
       if (!this.jobs[user.id]) {
         this.jobs[user.id] = {};
       }
@@ -247,7 +261,7 @@ export class JobsClient {
    * @param cronExp
    */
   public parseExpression(cronExp: string) {
-    return cronParser.parseExpression(cronExp);
+    return this.parser.parseExpression(cronExp);
   }
 }
 

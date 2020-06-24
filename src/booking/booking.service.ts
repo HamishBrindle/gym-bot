@@ -57,7 +57,7 @@ export class BookingService implements OnModuleInit {
    * @param cronExp Cron expression (ex. "45 17 * * 0-2,5-6")
    */
   async schedule(user: User, cronExp: string): Promise<JobsSummary> {
-    const summary = await this.jobsService.add(user, cronExp, async () => {
+    const summary = await this.jobsService.add(user, cronExp, () => {
       const parsed = this.jobsService.parseExpression(cronExp);
       const date = moment().add(3, 'days');
       const prev = moment(parsed.prev().toDate()).tz('America/Los_Angeles');
