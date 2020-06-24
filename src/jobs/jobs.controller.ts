@@ -15,12 +15,12 @@ export class JobsController {
   @UseGuards(JwtAuthGuard)
   @Get()
   async findAll(@CurrentUser() currentUser: User) {
-    return this.jobsService.find(currentUser);
+    return this.jobsService.findInClient(currentUser);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':cron')
   async findOne(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
-    return this.jobsService.findOne(currentUser, cronExp);
+    return this.jobsService.findOneInClient(currentUser, cronExp);
   }
 }

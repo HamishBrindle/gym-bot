@@ -180,6 +180,32 @@ export class JobsClient {
   }
 
   /**
+   * Providing a status, get a User's job and start/stop it
+   *
+   * @param user
+   * @param cronExp
+   * @param status
+   */
+  public updateStatus(user: User, cronExp: string, status: JobsStatus) {
+    const job = this.get(user, cronExp);
+    if (!job) throw Error('Cannot update status of non-existent job');
+    switch (status) {
+      case 'scheduled': {
+        job.start();
+        break;
+      }
+      case 'stopped': {
+        job.stop();
+        break;
+      }
+      default: {
+        throw Error(`Unknown/unsupported status provided to update: ${status}`);
+      }
+    }
+    return this.getSummary(user, cronExp);
+  }
+
+  /**
    * Get a job's status
    *
    * @param user
@@ -191,6 +217,7 @@ export class JobsClient {
       throw Error('Unable to get status of job because it doesn\'t exist');
     }
     const status = job.getStatus();
+
     // There's a typo in the `node-cron` library lol
     return (status === 'stoped') ? 'stopped' : status as JobsStatus;
   }

@@ -1,8 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
+import {
+  Injectable, Inject,
+} from '@nestjs/common';
 import cron from 'node-cron';
 import { User } from 'src/users/users.entity';
 import Bluebird from 'bluebird';
-import { Repository } from 'typeorm';
+import { Repository, FindManyOptions, FindOneOptions } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobsClient, JobsStatus, JobsSummary } from './jobs.client';
 import { Job } from './jobs.entity';
@@ -13,8 +15,7 @@ export class JobsService {
   private readonly jobsClient: JobsClient;
 
   constructor(
-    @InjectRepository(Job)
-    private readonly jobsRepository: Repository<Job>,
+    @InjectRepository(Job) private readonly jobsRepository: Repository<Job>,
   ) {}
 
   /**
@@ -47,7 +48,30 @@ export class JobsService {
   }
 
   /**
-   * Add a job
+   * Activate an existing, non-active `Job` (probably from DB).
+   * Basically, it activates a `Job` through the `JobsClient` but
+   * doesn't interact with persisted data in the database.
+   *
+   * @param user
+   * @param cronExp
+   * @param status
+   * @param cb
+   * @param options
+   */
+  public activate(
+    user: User,
+    cronExp: string,
+    status: JobsStatus,
+    cb: () => void,
+    options?: cron.ScheduleOptions,
+  ): JobsSummary | null {
+    const jobSummary = this.jobsClient.add(user, cronExp, cb, options);
+    if (!jobSummary) return null;
+    return this.jobsClient.updateStatus(user, cronExp, status);
+  }
+
+  /**
+   * Add a Job and persist to the database
    *
    * @param user
    * @param cronExp
@@ -59,31 +83,45 @@ export class JobsService {
     cronExp: string,
     cb: () => void,
     options?: cron.ScheduleOptions,
-  ) {
-    const job = this.jobsRepository.create();
+  ): Promise<JobsSummary | null> {
     const jobSummary = this.jobsClient.add(user, cronExp, cb, options);
     if (!jobSummary) return null;
     try {
-      job.user = user;
-      job.expression = cronExp;
-      job.status = jobSummary.status;
-      await job.save();
+      // See if existing job
+      let job = await this.jobsRepository.findOne({
+        where: {
+          user: {
+            id: user.id,
+          },
+          expression: cronExp,
+        },
+      });
+
+      // We only persist to DB if non-existent
+      if (!job) {
+        job = this.jobsRepository.create();
+        job.user = user;
+        job.expression = cronExp;
+        job.status = jobSummary.status;
+        await job.save();
+      }
     } catch (error) {
       console.error(error);
       this.jobsClient.destroy(user, cronExp);
+      return null;
     }
     return jobSummary;
   }
 
   /**
-   * Destroy a job
+   * Destroy a Job and remove from the database
    *
    * @param user
    * @param cronExp
    */
   public async destroy(user: User, cronExp: string) {
-    const success = this.jobsClient.destroy(user, cronExp);
-    if (success) {
+    const summary = this.jobsClient.destroy(user, cronExp);
+    if (summary) {
       await this.jobsRepository.delete({
         user: {
           id: user.id,
@@ -91,27 +129,41 @@ export class JobsService {
         expression: cronExp,
       });
     }
-    return success;
+    return summary;
   }
 
   /**
-   * Remove a job
+   * Update a Job and persist to the database
    *
    * @param user
    * @param cronExp
+   * @param status
    */
-  public start(user: User, cronExp: string): boolean {
-    return this.jobsClient.start(user, cronExp);
-  }
-
-  /**
-   * Remove a job
-   *
-   * @param user
-   * @param cronExp
-   */
-  public stop(user: User, cronExp: string): boolean {
-    return this.jobsClient.stop(user, cronExp);
+  public async update(
+    user: User,
+    cronExp: string,
+    status: JobsStatus,
+  ): Promise<JobsSummary | null> {
+    const initialStatus = this.jobsClient.getStatus(user, cronExp);
+    const summary = this.jobsClient.updateStatus(user, cronExp, status);
+    if (!summary) {
+      throw Error('Unable to start scheduled task again 🙇‍♂️');
+    }
+    try {
+      await this.jobsRepository.update({
+        user: {
+          id: user.id,
+        },
+        expression: cronExp,
+      }, {
+        status: summary.status,
+      });
+      return summary;
+    } catch (error) {
+      console.error(error);
+      this.jobsClient.updateStatus(user, cronExp, initialStatus);
+      return null;
+    }
   }
 
   /**
@@ -125,11 +177,29 @@ export class JobsService {
   }
 
   /**
+   * Find Jobs persisted to the database
+   *
+   * @param options
+   */
+  public async find(options?: FindManyOptions) {
+    return this.jobsRepository.find(options);
+  }
+
+  /**
+   * Find a Job persisted to the database
+   *
+   * @param options
+   */
+  public async findOne(options?: FindOneOptions) {
+    return this.jobsRepository.findOne(options);
+  }
+
+  /**
    * Find all of the scheduled bookings
    *
    * @param user
    */
-  async find(user: User) {
+  public async findInClient(user: User) {
     const expressions = this.jobsClient.getAllExpressions(user);
     return Bluebird.mapSeries(
       expressions,
@@ -143,7 +213,7 @@ export class JobsService {
    * @param user
    * @param cronExp
    */
-  async findOne(user: User, cronExp: string) {
+  public async findOneInClient(user: User, cronExp: string) {
     return this.getSummary(user, cronExp);
   }
 }

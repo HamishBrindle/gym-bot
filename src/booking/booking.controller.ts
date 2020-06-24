@@ -1,5 +1,5 @@
 import {
-  Controller, Post, UseGuards, Delete, Param, Query, Get,
+  Controller, Post, UseGuards, Delete, Param, Query, Get, Patch, Body,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CurrentUser } from 'src/shared/decorators/user-info.decorator';
@@ -7,6 +7,7 @@ import { User } from 'src/users/users.entity';
 import { Crypto } from 'src/shared/Crypto';
 import { ConfigService } from '@nestjs/config';
 import { BookingService } from './booking.service';
+import { UpdateBookingDto } from './dto/update-booking.dto';
 
 @Controller('booking')
 export class BookingController {
@@ -25,6 +26,16 @@ export class BookingController {
   @Post('schedule/:cron')
   async schedule(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
     return this.bookingService.schedule(currentUser, cronExp);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('update/:cron')
+  async update(
+  @Param('cron') cronExp: string,
+    @CurrentUser() currentUser: User,
+    @Body() updateBookingDto: UpdateBookingDto,
+  ) {
+    return this.bookingService.update(currentUser, cronExp, updateBookingDto);
   }
 
   @UseGuards(JwtAuthGuard)

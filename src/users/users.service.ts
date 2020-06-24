@@ -36,7 +36,7 @@ export class UsersService {
    *
    * @param options
    */
-  async findAll(options?: FindManyOptions): Promise<User[]> {
+  async find(options?: FindManyOptions): Promise<User[]> {
     return this.usersRepository.find(options);
   }
 

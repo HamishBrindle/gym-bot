@@ -6,11 +6,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  Unique,
 } from 'typeorm';
 import { User } from 'src/users/users.entity';
 import { JobsStatus } from './jobs.client';
 
 @Entity()
+@Unique(['expression', 'user'])
 export class Job extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   readonly id!: string;
