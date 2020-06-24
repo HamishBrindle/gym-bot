@@ -5,6 +5,6 @@ services:
     build:
       context: .
       target: production
-    command: npm run start
+    command: null
     env_file:
       - .env
