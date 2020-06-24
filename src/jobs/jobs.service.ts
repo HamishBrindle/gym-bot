@@ -4,7 +4,7 @@ import { User } from 'src/users/users.entity';
 import Bluebird from 'bluebird';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JobsClient, JobsStatus } from './jobs.client';
+import { JobsClient, JobsStatus, JobsSummary } from './jobs.client';
 import { Job } from './jobs.entity';
 
 @Injectable()
@@ -33,16 +33,8 @@ export class JobsService {
    * @param user
    * @param cronExp
    */
-  public getSummary(user: User, cronExp: string): any {
-    const parsed = this.parseExpression(cronExp);
-    return {
-      expression: cronExp,
-      status: this.getStatus(user, cronExp),
-      hasNext: parsed.hasNext(),
-      hasPrevious: parsed.hasPrev(),
-      next: parsed.next().toString(),
-      previous: parsed.prev().toString(),
-    };
+  public getSummary(user: User, cronExp: string): JobsSummary {
+    return this.jobsClient.getSummary(user, cronExp);
   }
 
   /**
@@ -62,17 +54,25 @@ export class JobsService {
    * @param cb
    * @param options
    */
-  public async add(user: User, cronExp: string, cb: () => void, options?: cron.ScheduleOptions) {
-    const success = this.jobsClient.add(user, cronExp, cb, options);
-    if (success) {
-      const status = this.getStatus(user, cronExp);
-      await this.jobsRepository.create({
-        user,
-        expression: cronExp,
-        status,
-      });
+  public async add(
+    user: User,
+    cronExp: string,
+    cb: () => void,
+    options?: cron.ScheduleOptions,
+  ) {
+    const job = this.jobsRepository.create();
+    const jobSummary = this.jobsClient.add(user, cronExp, cb, options);
+    if (!jobSummary) return null;
+    try {
+      job.user = user;
+      job.expression = cronExp;
+      job.status = jobSummary.status;
+      await job.save();
+    } catch (error) {
+      console.error(error);
+      this.jobsClient.destroy(user, cronExp);
     }
-    return success;
+    return jobSummary;
   }
 
   /**
