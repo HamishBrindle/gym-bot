@@ -1,5 +1,5 @@
 import {
-  Controller, Post, UseGuards, Delete, Param, Query, Patch, Body, Get,
+  Controller, Post, UseGuards, Delete, Param, Patch, Body, Get,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CurrentUser } from 'src/shared/decorators/user-info.decorator';
@@ -47,11 +47,5 @@ export class BookingController {
   @Delete(':cron')
   async cancel(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
     return this.bookingService.cancel(currentUser, cronExp);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('reserve')
-  async reserve(@Query('date') date: string, @Query('time') time: string, @CurrentUser() user: User) {
-    return this.bookingService.reserve(user, date, time);
   }
 }
