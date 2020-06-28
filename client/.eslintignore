@@ -1,0 +1,5 @@
+node_modules
+dist
+
+# FormBase isn't ours and there's no way I'm linting that thing
+src/components/FormBase/FormBase.vue
