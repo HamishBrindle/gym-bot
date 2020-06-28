@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import cors from 'cors';
+import { Server } from 'http';
 import { AppModule } from './app.module';
 
 /**
@@ -16,7 +17,11 @@ async function bootstrap() {
       origin: '*',
     }),
   );
-  await app.listen(process.env.SERVER_PORT ?? 4224);
+  await app.listen(process.env.SERVER_INT_PORT ?? 4224).then((server: Server) => {
+    console.info();
+    console.info('Blast-off 🚀 >> Server.address :', server.address()?.valueOf());
+    console.info();
+  });
 }
 
 bootstrap();

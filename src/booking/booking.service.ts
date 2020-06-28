@@ -1,4 +1,4 @@
-import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import moment from 'moment-timezone';
 import { JobsService } from 'src/jobs/jobs.service';
 import { User } from 'src/users/users.entity';
@@ -6,18 +6,20 @@ import { AccountsService } from 'src/accounts/accounts.service';
 import { JobsSummary } from 'src/jobs/jobs.client';
 import { UsersService } from 'src/users/users.service';
 import Bluebird from 'bluebird';
-import { BookingClient } from './booking.client';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { IGoldsGymArguments } from './functions/golds-gym';
 
 @Injectable()
 export class BookingService implements OnModuleInit {
-  @Inject('BOOKING_CLIENT')
-  private readonly bookingClient: BookingClient;
-
   constructor(
+    @InjectQueue('BOOKING_QUEUE') private readonly bookingQueue: Queue,
+
     private readonly jobsService: JobsService,
     private readonly accountsService: AccountsService,
     private readonly usersService: UsersService,
+
   ) {}
 
   /**
@@ -118,6 +120,16 @@ export class BookingService implements OnModuleInit {
     if (!account) {
       throw Error('This User cannot make a reservation without an Account');
     }
-    return this.bookingClient.reserve(account, date, time);
+    console.log('reserving :>>');
+    return this.bookingQueue.add('test', {
+      date,
+      time,
+      username: account.username,
+      password: account.password,
+    } as IGoldsGymArguments, {
+      removeOnComplete: true,
+      removeOnFail: true,
+      attempts: 1,
+    });
   }
 }

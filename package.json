@@ -29,6 +29,7 @@
     "seed:reset": "npm run mysql:dev:reset && npm run seed"
   },
   "dependencies": {
+    "@nestjs/bull": "^0.1.1",
     "@nestjs/common": "^7.0.0",
     "@nestjs/config": "^0.5.0",
     "@nestjs/core": "^7.0.0",
@@ -38,6 +39,7 @@
     "@nestjs/typeorm": "^7.1.0",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.7.2",
+    "bull": "^3.14.0",
     "class-transformer": "^0.2.3",
     "class-validator": "^0.12.2",
     "cors": "^2.8.5",
@@ -65,6 +67,7 @@
     "@nestjs/testing": "^7.0.0",
     "@types/bcryptjs": "^2.4.2",
     "@types/bluebird": "^3.5.32",
+    "@types/bull": "^3.14.0",
     "@types/cors": "^2.8.6",
     "@types/express": "^4.17.3",
     "@types/faker": "^4.1.12",
