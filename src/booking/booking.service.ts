@@ -45,7 +45,7 @@ export class BookingService implements OnModuleInit {
         user,
         job.expression,
         job.status,
-        () => this.schedule(user, job.expression),
+        () => this.reserve(user, job.expression),
       ));
     });
   }
@@ -57,16 +57,7 @@ export class BookingService implements OnModuleInit {
    * @param cronExp Cron expression (ex. "45 17 * * 0-2,5-6")
    */
   async schedule(user: User, cronExp: string): Promise<JobsSummary> {
-    const summary = await this.jobsService.add(user, cronExp, () => {
-      const parsed = this.jobsService.parseExpression(cronExp);
-      const date = moment().add(3, 'days');
-      const prev = moment(parsed.prev().toDate()).tz('America/Los_Angeles');
-      const hours = prev.hours();
-      const minutes = prev.minutes();
-      const meridiem = (hours < 12) ? 'am' : 'pm';
-      const time = `${(hours > 12) ? hours - 12 : hours}:${(minutes < 10) ? `0${minutes}` : minutes}${meridiem}`;
-      return this.reserve(user, date.format('MM/DD/YYYY'), time);
-    });
+    const summary = await this.jobsService.add(user, cronExp, () => this.reserve(user, cronExp));
     if (!summary) {
       throw Error('Unable to schedule this booking 🤷‍♂️');
     }
@@ -110,14 +101,22 @@ export class BookingService implements OnModuleInit {
    * Reserve a gym appointment
    *
    * @param user
-   * @param date Date the reservation process will occur (3 days prior)
-   * @param time Time of the session
+   * @param cronExp
    */
-  async reserve(user: User, date: string, time: string) {
+  async reserve(user: User, cronExp: string) {
     const account = await this.accountsService.get(user);
     if (!account) {
       throw Error('This User cannot make a reservation without an Account');
     }
-    return this.bookingClient.reserve(account, date, time);
+
+    const parsed = this.jobsService.parseExpression(cronExp);
+    const date = moment().add(3, 'days');
+    const prev = moment(parsed.prev().toDate()).tz('America/Los_Angeles');
+    const hours = prev.hours();
+    const minutes = prev.minutes();
+    const meridiem = (hours < 12) ? 'am' : 'pm';
+    const time = `${(hours > 12) ? hours - 12 : hours}:${(minutes < 10) ? `0${minutes}` : minutes}${meridiem}`;
+
+    return this.bookingClient.reserve(account, date.format('MM/DD/YYYY'), time);
   }
 }
