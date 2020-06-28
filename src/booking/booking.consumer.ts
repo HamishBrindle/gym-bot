@@ -6,21 +6,13 @@ import reserveGolds, { IGoldsGymArguments } from './functions/golds-gym';
 export class BookingConsumer {
   @OnQueueActive()
   onActive(queueJob: QueueJob) {
-    console.log(
-      `BOOKING_QUEUE: Processing job ${queueJob.id} of type ${queueJob.name} with data ${queueJob.data}...`,
-    );
+    console.log(`BOOKING_QUEUE: Processing job ${queueJob.id} of type ${queueJob.name} with data:`);
+    console.log(JSON.stringify(queueJob.data, null, 2));
   }
 
   @Process('golds')
   async golds(queueJob: QueueJob<IGoldsGymArguments>) {
     await reserveGolds(queueJob.data);
-    return {};
-  }
-
-  @Process('test')
-  async test(queueJob: QueueJob<IGoldsGymArguments>) {
-    console.log('TESTING TESTING TESTING');
-    console.log(queueJob.data);
     return {};
   }
 }

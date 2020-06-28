@@ -14,7 +14,7 @@ import { IGoldsGymArguments } from './functions/golds-gym';
 @Injectable()
 export class BookingService implements OnModuleInit {
   constructor(
-    @InjectQueue('BOOKING_QUEUE') private readonly bookingQueue: Queue,
+    @InjectQueue('BOOKING_QUEUE') private bookingQueue: Queue,
 
     private readonly jobsService: JobsService,
     private readonly accountsService: AccountsService,
@@ -119,15 +119,13 @@ export class BookingService implements OnModuleInit {
     const meridiem = (hours < 12) ? 'am' : 'pm';
     const time = `${(hours > 12) ? hours - 12 : hours}:${(minutes < 10) ? `0${minutes}` : minutes}${meridiem}`;
 
-    return this.bookingQueue.add('test', {
+    await this.bookingQueue.add('golds', {
       date: date.format('MM/DD/YYYY'),
       time,
       username: account.username,
       password: account.password,
-    } as IGoldsGymArguments, {
-      removeOnComplete: true,
-      removeOnFail: true,
-      attempts: 1,
-    });
+    } as IGoldsGymArguments);
+
+    return true;
   }
 }

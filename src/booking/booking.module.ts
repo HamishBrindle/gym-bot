@@ -6,6 +6,7 @@ import { UsersModule } from 'src/users/users.module';
 import { BullModule } from '@nestjs/bull';
 import { BookingController } from './booking.controller';
 import { BookingService } from './booking.service';
+import { BookingConsumer } from './booking.consumer';
 
 const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
 
@@ -17,6 +18,9 @@ const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
     UsersModule,
     BullModule.registerQueue({
       name: 'BOOKING_QUEUE',
+      defaultJobOptions: {
+        delay: 1000,
+      },
       redis: {
         host: REDIS_HOST,
         port: parseInt(REDIS_PORT as string, 10),
@@ -25,7 +29,7 @@ const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
     }),
   ],
   controllers: [BookingController],
-  providers: [BookingService],
+  providers: [BookingService, BookingConsumer],
   exports: [BookingService],
 })
 export class BookingModule {}
