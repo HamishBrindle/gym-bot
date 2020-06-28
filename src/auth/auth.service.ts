@@ -56,6 +56,7 @@ export class AuthService {
       sub: user.id,
     };
     return {
+      ...payload,
       accessToken: this.jwtService.sign(payload),
     };
   }

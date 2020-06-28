@@ -17,6 +17,7 @@ async function bootstrap() {
       origin: '*',
     }),
   );
+  app.setGlobalPrefix('api');
   await app.listen(process.env.SERVER_INT_PORT ?? 4224).then((server: Server) => {
     console.info();
     console.info('Blast-off 🚀 >> Server.address :', server.address()?.valueOf());
