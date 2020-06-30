@@ -4,6 +4,12 @@ import {
 import { JobsStatus } from 'src/jobs/jobs.client';
 
 export class UpdateBookingDto {
+  @IsString()
+  readonly date: string;
+
+  @IsString()
+  readonly time: string;
+
   /**
    * Unique email address of User
    */

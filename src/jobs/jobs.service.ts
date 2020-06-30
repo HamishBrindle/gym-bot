@@ -6,6 +6,8 @@ import { User } from 'src/users/users.entity';
 import Bluebird from 'bluebird';
 import { Repository, FindManyOptions, FindOneOptions } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CreateBookingDto } from 'src/booking/dto/create-booking.dto';
+import { UpdateBookingDto } from 'src/booking/dto/update-booking.dto';
 import { JobsClient, JobsStatus, JobsSummary } from './jobs.client';
 import { Job } from './jobs.entity';
 
@@ -53,21 +55,19 @@ export class JobsService {
    * doesn't interact with persisted data in the database.
    *
    * @param user
-   * @param cronExp
-   * @param status
+   * @param job
    * @param cb
    * @param options
    */
   public activate(
     user: User,
-    cronExp: string,
-    status: JobsStatus,
+    job: Job,
     cb: () => void,
     options?: cron.ScheduleOptions,
   ): JobsSummary | null {
-    const jobSummary = this.jobsClient.add(user, cronExp, cb, options);
+    const jobSummary = this.jobsClient.add(user, job.expression, cb, options);
     if (!jobSummary) return null;
-    return this.jobsClient.updateStatus(user, cronExp, status);
+    return this.jobsClient.updateStatus(user, job.expression, job.status);
   }
 
   /**
@@ -75,12 +75,14 @@ export class JobsService {
    *
    * @param user
    * @param cronExp
+   * @param createBookingDto
    * @param cb
    * @param options
    */
   public async add(
     user: User,
     cronExp: string,
+    createBookingDto: CreateBookingDto,
     cb: () => void,
     options?: cron.ScheduleOptions,
   ): Promise<JobsSummary | null> {
@@ -102,6 +104,8 @@ export class JobsService {
         job = this.jobsRepository.create();
         job.user = user;
         job.expression = cronExp;
+        job.date = createBookingDto.date;
+        job.time = createBookingDto.time;
         job.status = jobSummary.status;
         await job.save();
       }
@@ -137,15 +141,15 @@ export class JobsService {
    *
    * @param user
    * @param cronExp
-   * @param status
+   * @param updateBookingDto
    */
   public async update(
     user: User,
     cronExp: string,
-    status: JobsStatus,
+    updateBookingDto: UpdateBookingDto,
   ): Promise<JobsSummary | null> {
     const initialStatus = this.jobsClient.getStatus(user, cronExp);
-    const summary = this.jobsClient.updateStatus(user, cronExp, status);
+    const summary = this.jobsClient.updateStatus(user, cronExp, updateBookingDto.status);
     if (!summary) {
       throw Error('Unable to start scheduled task again 🙇‍♂️');
     }
@@ -156,7 +160,9 @@ export class JobsService {
         },
         expression: cronExp,
       }, {
-        status: summary.status,
+        status: updateBookingDto.status,
+        date: updateBookingDto.date,
+        time: updateBookingDto.time,
       });
       return summary;
     } catch (error) {

@@ -9,7 +9,8 @@ import Bluebird from 'bluebird';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { UpdateBookingDto } from './dto/update-booking.dto';
-import { IGoldsGymArguments } from './functions/golds-gym';
+import reserveGolds, { IGoldsGymArguments } from './functions/golds-gym';
+import { CreateBookingDto } from './dto/create-booking.dto';
 
 @Injectable()
 export class BookingService implements OnModuleInit {
@@ -45,9 +46,8 @@ export class BookingService implements OnModuleInit {
       });
       return jobsFromDb.map((job) => this.jobsService.activate(
         user,
-        job.expression,
-        job.status,
-        () => this.reserve(user, job.expression),
+        job,
+        () => this.reserve(user, job),
       ));
     });
   }
@@ -57,9 +57,19 @@ export class BookingService implements OnModuleInit {
    *
    * @param user
    * @param cronExp Cron expression (ex. "45 17 * * 0-2,5-6")
+   * @param createBookingDto
    */
-  async schedule(user: User, cronExp: string): Promise<JobsSummary> {
-    const summary = await this.jobsService.add(user, cronExp, () => this.reserve(user, cronExp));
+  async schedule(
+    user: User,
+    cronExp: string,
+    createBookingDto: CreateBookingDto,
+  ): Promise<JobsSummary> {
+    const summary = await this.jobsService.add(
+      user,
+      cronExp,
+      createBookingDto,
+      () => this.reserve(user, createBookingDto),
+    );
     if (!summary) {
       throw Error('Unable to schedule this booking 🤷‍♂️');
     }
@@ -92,7 +102,7 @@ export class BookingService implements OnModuleInit {
     cronExp: string,
     updateBookingDto: UpdateBookingDto,
   ): Promise<JobsSummary> {
-    const summary = await this.jobsService.update(user, cronExp, updateBookingDto.status);
+    const summary = await this.jobsService.update(user, cronExp, updateBookingDto);
     if (!summary) {
       throw Error('Unable to update this existing booking 😭');
     }
@@ -104,23 +114,42 @@ export class BookingService implements OnModuleInit {
    *
    * @param user
    * @param cronExp
+   * @param createBookingDto
    */
-  async reserve(user: User, cronExp: string) {
+  async reserve(user: User, createBookingDto: CreateBookingDto) {
     const account = await this.accountsService.get(user);
     if (!account) {
       throw Error('This User cannot make a reservation without an Account');
     }
 
-    const parsed = this.jobsService.parseExpression(cronExp);
-    const date = moment().add(3, 'days');
-    const prev = moment(parsed.prev().toDate()).tz('America/Los_Angeles');
-    const hours = prev.hours();
-    const minutes = prev.minutes();
-    const meridiem = (hours < 12) ? 'am' : 'pm';
-    const time = `${(hours > 12) ? hours - 12 : hours}:${(minutes < 10) ? `0${minutes}` : minutes}${meridiem}`;
+    const date = moment(createBookingDto.date, 'MM/DD/YYYY');
+    const { time } = createBookingDto;
 
     await this.bookingQueue.add('golds', {
       date: date.format('MM/DD/YYYY'),
+      time,
+      username: account.username,
+      password: account.password,
+    } as IGoldsGymArguments);
+
+    return true;
+  }
+
+  /**
+   * Reserve a gym appointment
+   *
+   * @param user
+   * @param date
+   * @param time
+   */
+  async debug(user: User, date: string, time: string) {
+    const account = await this.accountsService.get(user);
+    if (!account) {
+      throw Error('This User cannot make a reservation without an Account');
+    }
+
+    await reserveGolds({
+      date,
       time,
       username: account.username,
       password: account.password,

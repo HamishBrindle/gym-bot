@@ -1,6 +1,20 @@
+/* eslint-disable no-await-in-loop */
 import puppeteer from 'puppeteer';
 import Bluebird from 'bluebird';
 import moment from 'moment-timezone';
+
+/**
+ * @param linkText
+ */
+function getText(linkText: any) {
+  linkText = linkText.replace(/\r\n|\r/g, '\n');
+  // eslint-disable-next-line no-useless-escape
+  linkText = linkText.replace(/\ +/g, ' ');
+
+  // Replace &nbsp; with a space
+  const nbspPattern = new RegExp(String.fromCharCode(160), 'g');
+  return linkText.replace(nbspPattern, ' ');
+}
 
 /**
  * Arguments sent to our reservation jobs
@@ -59,6 +73,9 @@ export default async function reserveGolds(
   const bookingDate = bookingMoment.format('MM/DD/YYYY');
   const bookingTime = time;
 
+  console.log('bookingDate :>> ', bookingDate);
+  console.log('bookingTime :>> ', bookingTime);
+
   // Initialize headless browser
   const browser = await puppeteer.launch({
     headless: true,
@@ -111,30 +128,34 @@ export default async function reserveGolds(
     if (!table) {
       throw Error('Didnt find the right table I guess');
     }
-    const classesOnSpecificDay = await table.$$('tbody > tr.classes');
-    const classAtSpecificTime = await Bluebird.mapSeries(classesOnSpecificDay, async (tr) => {
-      const cls = await tr.evaluate((element, t) => {
-        const isCorrectTime = element.children[0]?.textContent?.split('-')[0].trim().includes(t);
-        const isFull = element.children[1]?.textContent?.includes('Class full');
-        const isWorkoutReservation = element.children[2]?.firstChild?.textContent?.includes('Workout Reservation');
 
-        if (isCorrectTime && !isFull && isWorkoutReservation) {
-          return true;
-        }
+    const classesForDate = await table.$$('tbody > tr.classes');
+    const [enrollButton] = await Bluebird.filter(classesForDate, async (classForDate) => {
+      // Get the time of the class from the 1st TD element
+      const classTime = await classForDate.$('td:nth-child(1)');
+      if (!classTime) return false;
+      const innerTextHandle = await classTime.getProperty('innerText');
+      const innerTextJsonValue = await innerTextHandle.jsonValue();
+      const innerText = getText(innerTextJsonValue);
+      if (!innerText.startsWith(bookingTime)) return false;
 
-        return false;
-      }, bookingTime);
+      // Get the type of event from the 3rd TD element
+      const eventNameElement = await classForDate.$('td:nth-child(3) > a.eventName');
+      if (!eventNameElement) return false;
+      const eventNameHandle = await eventNameElement.getProperty('innerText');
+      const eventNameJsonValue = await eventNameHandle.jsonValue();
+      const eventName = getText(eventNameJsonValue);
+      if (!eventName.includes('Workout')) return false;
 
-      if (cls) {
-        return tr;
-      }
-      return null;
+      const enrollButtonElement = await classForDate.$('td:nth-child(2) > button.enrollEvent');
+      if (!enrollButtonElement) return false;
+      return true;
     });
-    const [targetClass] = classAtSpecificTime.filter(Boolean);
-    const enrollButton = await targetClass?.$('td.enrolledFull > button');
+
     if (!enrollButton) {
       throw Error('Unable to find the enroll button for this class');
     }
+
     await enrollButton.click({ delay: 5 });
     await page.waitForSelector('#scheduleEventDialog', {
       timeout: 10000,

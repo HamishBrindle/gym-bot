@@ -1,5 +1,5 @@
 import {
-  Controller, Post, UseGuards, Delete, Param, Patch, Body, Get,
+  Controller, Post, UseGuards, Delete, Param, Patch, Body, Get, Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CurrentUser } from 'src/shared/decorators/user-info.decorator';
@@ -7,6 +7,7 @@ import { User } from 'src/users/users.entity';
 import { JobsService } from 'src/jobs/jobs.service';
 import { BookingService } from './booking.service';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { CreateBookingDto } from './dto/create-booking.dto';
 
 @Controller('booking')
 export class BookingController {
@@ -28,9 +29,19 @@ export class BookingController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('reserve')
+  async reserve(@Query('time') time: string, @Query('date') date: string, @CurrentUser() currentUser: User) {
+    return this.bookingService.debug(currentUser, date, time);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post(':cron')
-  async schedule(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
-    return this.bookingService.schedule(currentUser, cronExp);
+  async schedule(
+  @Param('cron') cronExp: string,
+    @CurrentUser() currentUser: User,
+    @Body() createBookingDto: CreateBookingDto,
+  ) {
+    return this.bookingService.schedule(currentUser, cronExp, createBookingDto);
   }
 
   @UseGuards(JwtAuthGuard)
