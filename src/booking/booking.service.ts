@@ -110,7 +110,7 @@ export class BookingService implements OnModuleInit {
     }
 
     const parsed = this.jobsService.parseExpression(cronExp);
-    const date = moment().add(3, 'days');
+    const date = moment().add(3, 'days').tz('America/Los_Angeles');
     const prev = moment(parsed.prev().toDate()).tz('America/Los_Angeles');
     const hours = prev.hours();
     const minutes = prev.minutes();
