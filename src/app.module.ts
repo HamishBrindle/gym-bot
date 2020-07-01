@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AccountsModule } from './accounts/accounts.module';
+import { MetadataModule } from './metadata/metadata.module';
 
 // @ts-ignore - Too lazy to declare
 import ormconfig from '../ormconfig';
@@ -25,6 +26,7 @@ import ormconfig from '../ormconfig';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
     }),
+    MetadataModule,
   ],
   controllers: [],
   providers: [],

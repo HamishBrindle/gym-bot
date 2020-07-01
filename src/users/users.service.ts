@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, FindOneOptions } from 'typeorm';
 import bcrypt from 'bcryptjs';
-import { User } from 'src/users/users.entity';
+import { User } from './users.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 
 interface IFindArguments {
