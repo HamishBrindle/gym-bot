@@ -1,160 +1,161 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import moment from 'moment-timezone';
-import { JobsService } from 'src/jobs/jobs.service';
-import { User } from 'src/users/users.entity';
-import { AccountsService } from 'src/accounts/accounts.service';
-import { JobsSummary } from 'src/jobs/jobs.client';
-import { UsersService } from 'src/users/users.service';
-import Bluebird from 'bluebird';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { UpdateBookingDto } from './dto/update-booking.dto';
-import reserveGolds, { IGoldsGymArguments } from './functions/golds-gym';
-import { CreateBookingDto } from './dto/create-booking.dto';
+import { Queue, Job } from 'bull';
+import date2cron from 'src/shared/date2Cron';
+import constants from 'src/shared/constants';
+import { User } from 'src/users/users.entity';
+import { Booking } from 'src/shared/types/booking.type';
+import { LoggerService } from 'src/logger/logger.service';
+import { CreateBookingDto } from './dto/golds/create-booking.dto';
+
+/**
+ * Create a unique job ID for a queue task to be fetched later
+ *
+ * @param user
+ * @param type
+ * @param cronExpression
+ */
+function createJobId(user: User, type: string, cronExpression: string): string {
+  return `${user.id}|${type}|${cronExpression}`.replace(' ', '-');
+}
 
 @Injectable()
 export class BookingService implements OnModuleInit {
   constructor(
     @InjectQueue('BOOKING_QUEUE') private bookingQueue: Queue,
-
-    private readonly jobsService: JobsService,
-    private readonly accountsService: AccountsService,
-    private readonly usersService: UsersService,
-
-  ) {}
-
-  /**
-   * Initialization lifecycle-hook
-   */
-  async onModuleInit(): Promise<void> {
-    this.sync();
+    private readonly logger: LoggerService,
+  ) {
+    this.logger.setContext('BookingService');
   }
 
   /**
-   * Sync the `Job[]` persisted in the database and activate
-   * the jobs and their remembered state.
+   * Hook-up all the queue listeners with our logger
    */
-  public async sync(): Promise<(JobsSummary|null)[][]> {
-    const users = await this.usersService.find();
-    return Bluebird.map(users, async (user) => {
-      const jobsFromDb = await this.jobsService.find({
-        where: {
-          user: {
-            id: user.id,
-          },
-        },
-      });
-      return jobsFromDb.map((job) => this.jobsService.activate(
-        user,
-        job,
-        () => this.reserve(user, job),
-      ));
+  onModuleInit() {
+    this.bookingQueue.on('error', (error) => {
+      // An error occured.
+      this.logger.error(error);
+    });
+
+    this.bookingQueue.on('waiting', (jobId) => {
+      // A Job is waiting to be processed as soon as a worker is idling.
+      this.logger.log(`🤷‍♂️ Job is waiting: ${jobId}`);
+    });
+
+    this.bookingQueue.on('active', (job /* jobPromise */) => {
+      // A job has started. You can use `jobPromise.cancel()`` to abort it.
+      this.logger.log(`🏃‍♂️ Job "${job.id}" has been started with data: ${JSON.stringify(job.data, null, 2)}`);
+    });
+
+    this.bookingQueue.on('stalled', (job) => {
+      // A job has been marked as stalled. This is useful for debugging job
+      // workers that crash or pause the event loop.
+      this.logger.warn(`🛑 Job has been stalled: ${job.id}`);
+    });
+
+    this.bookingQueue.on('progress', (job, progress) => {
+      // A job's progress was updated!
+      this.logger.log(`⏱ Job "${job.id}" has progressed: ${progress}`);
+    });
+
+    this.bookingQueue.on('completed', (job, result) => {
+      // A job successfully completed with a `result`.
+      this.logger.log(`✔ Job "${job.id}" has completed: ${JSON.stringify(result, null, 2)}`);
+    });
+
+    this.bookingQueue.on('failed', (job, err) => {
+      this.logger.error(`❌ Job "${job.id}" has failed: ${err.message}`, err.stack);
+    });
+
+    this.bookingQueue.on('paused', () => {
+      // The queue has been paused.
+      this.logger.log('⏸ Queue has been paused...');
+    });
+
+    this.bookingQueue.on('resumed', (job: Job) => {
+      // The queue has been resumed.
+      this.logger.log(`▶ Queue has been resumed with job: ${job.id || JSON.stringify(job, null, 2)}"`);
+    });
+
+    this.bookingQueue.on('cleaned', (jobs, type) => {
+      // Old jobs have been cleaned from the queue. `jobs` is an array of cleaned
+      // jobs, and `type` is the type of jobs cleaned.
+      this.logger.log(`🧹 Some "${type}" Jobs have been cleaned: ${JSON.stringify(jobs, null, 2)}`);
+    });
+
+    this.bookingQueue.on('drained', () => {
+      // Emitted every time the queue has processed all the waiting jobs
+      // (even if there can be some delayed jobs not yet processed)
+      this.logger.log('🍾🥂 All the Jobs in the queue have been processed!');
+    });
+
+    this.bookingQueue.on('removed', (job) => {
+      // A job successfully removed.
+      this.logger.log(`🙅‍♂️ Job has been removed: ${job.id}`);
     });
   }
 
   /**
-   * Schedule a cronjob for booking gym appointments
+   * Create a new Booking
    *
    * @param user
-   * @param cronExp Cron expression (ex. "45 17 * * 0-2,5-6")
    * @param createBookingDto
    */
-  async schedule(
-    user: User,
-    cronExp: string,
-    createBookingDto: CreateBookingDto,
-  ): Promise<JobsSummary> {
-    const summary = await this.jobsService.add(
-      user,
-      cronExp,
-      createBookingDto,
-      () => this.reserve(user, createBookingDto),
-    );
-    if (!summary) {
-      throw Error('Unable to schedule this booking 🤷‍♂️');
-    }
-    return summary;
-  }
+  async create(user: User, createBookingDto: CreateBookingDto) {
+    const defaultTimezone = constants.defaults.tz;
+    const cron = date2cron(createBookingDto.time, createBookingDto.days, {
+      tz: createBookingDto.tz ?? defaultTimezone,
+      offset: ['hours', -72],
+    });
 
-  /**
-   * Cancel a scheduled booking; destroy it.
-   *
-   * @param user
-   * @param cronExp
-   */
-  async cancel(user: User, cronExp: string): Promise<JobsSummary> {
-    const summary = await this.jobsService.destroy(user, cronExp);
-    if (!summary) {
-      throw Error('Unable to cancel this scheduled booking 🤦‍♂️');
-    }
-    return summary;
-  }
+    const jobId = createJobId(user, createBookingDto.type, cron);
 
-  /**
-   * Update the status of a booking
-   *
-   * @param user
-   * @param cronExp
-   * @param updateBookingDto
-   */
-  async update(
-    user: User,
-    cronExp: string,
-    updateBookingDto: UpdateBookingDto,
-  ): Promise<JobsSummary> {
-    const summary = await this.jobsService.update(user, cronExp, updateBookingDto);
-    if (!summary) {
-      throw Error('Unable to update this existing booking 😭');
-    }
-    return summary;
-  }
-
-  /**
-   * Reserve a gym appointment
-   *
-   * @param user
-   * @param cronExp
-   * @param createBookingDto
-   */
-  async reserve(user: User, createBookingDto: CreateBookingDto) {
-    const account = await this.accountsService.get(user);
-    if (!account) {
-      throw Error('This User cannot make a reservation without an Account');
+    const existing = await this.bookingQueue.getJob(jobId);
+    if (existing) {
+      throw Error('A job with this ID already exists in the queue');
     }
 
-    const date = moment(createBookingDto.date, 'MM/DD/YYYY');
-    const { time } = createBookingDto;
-
-    await this.bookingQueue.add('golds', {
-      date: date.format('MM/DD/YYYY'),
-      time,
-      username: account.username,
-      password: account.password,
-    } as IGoldsGymArguments);
-
-    return true;
+    return this.bookingQueue.add(createBookingDto.type, {
+      time: createBookingDto.time,
+      days: createBookingDto.days,
+      username: createBookingDto.username,
+      password: createBookingDto.password,
+    }, {
+      jobId,
+      repeat: {
+        cron,
+        tz: createBookingDto.tz ?? defaultTimezone,
+        startDate: createBookingDto.startDate,
+        endDate: createBookingDto.endDate,
+        limit: createBookingDto.limit,
+      },
+    });
   }
 
-  /**
-   * Reserve a gym appointment
-   *
-   * @param user
-   * @param date
-   * @param time
-   */
-  async debug(user: User, date: string, time: string) {
-    const account = await this.accountsService.get(user);
-    if (!account) {
-      throw Error('This User cannot make a reservation without an Account');
+  async findOne(user: User, type: Booking, expression: string) {
+    const jobId = createJobId(user, type, expression);
+    const job = await this.bookingQueue.getJob(jobId);
+    if (!job) {
+      return null;
     }
-
-    await reserveGolds({
-      date,
-      time,
-      username: account.username,
-      password: account.password,
-    } as IGoldsGymArguments);
-
-    return true;
+    return job;
   }
+
+  async find(user: User, type: Booking) {
+    const jobs = await this.bookingQueue.getJobs([
+      'waiting',
+      'active',
+      'paused',
+      'delayed',
+      'active',
+    ]);
+    if (!jobs || !jobs.length) {
+      return null;
+    }
+    return jobs.filter((job) => job.id.toString().startsWith(`${user.id}|${type}`));
+  }
+
+  // TODO: Update?
+
+  // TODO: Delete
 }

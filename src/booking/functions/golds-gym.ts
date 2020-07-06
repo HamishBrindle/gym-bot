@@ -73,9 +73,6 @@ export default async function reserveGolds(
   const bookingDate = bookingMoment.format('MM/DD/YYYY');
   const bookingTime = time;
 
-  console.log('bookingDate :>> ', bookingDate);
-  console.log('bookingTime :>> ', bookingTime);
-
   // Initialize headless browser
   const browser = await puppeteer.launch({
     headless: true,

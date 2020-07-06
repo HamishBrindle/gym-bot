@@ -1,62 +1,48 @@
 import {
-  Controller, Post, UseGuards, Delete, Param, Patch, Body, Get, Query,
+  Controller, Post, UseGuards, Delete, Patch, Get,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
-import { CurrentUser } from 'src/shared/decorators/user-info.decorator';
-import { User } from 'src/users/users.entity';
-import { JobsService } from 'src/jobs/jobs.service';
 import { BookingService } from './booking.service';
-import { UpdateBookingDto } from './dto/update-booking.dto';
-import { CreateBookingDto } from './dto/create-booking.dto';
 
 @Controller('booking')
 export class BookingController {
   constructor(
     private readonly bookingService: BookingService,
-    private readonly jobsService: JobsService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async findAll(@CurrentUser() currentUser: User) {
-    return this.jobsService.findInClient(currentUser);
+  async findAll() {
+    // TODO
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':cron')
-  async findOne(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
-    return this.jobsService.findOneInClient(currentUser, cronExp);
+  async findOne() {
+    // TODO
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('reserve')
-  async reserve(@Query('time') time: string, @Query('date') date: string, @CurrentUser() currentUser: User) {
-    return this.bookingService.debug(currentUser, date, time);
+  async reserve() {
+    // TODO
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':cron')
-  async schedule(
-  @Param('cron') cronExp: string,
-    @CurrentUser() currentUser: User,
-    @Body() createBookingDto: CreateBookingDto,
-  ) {
-    return this.bookingService.schedule(currentUser, cronExp, createBookingDto);
+  async schedule() {
+    // TODO
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':cron')
-  async update(
-  @Param('cron') cronExp: string,
-    @CurrentUser() currentUser: User,
-    @Body() updateBookingDto: UpdateBookingDto,
-  ) {
-    return this.bookingService.update(currentUser, cronExp, updateBookingDto);
+  async update() {
+    // TODO
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':cron')
-  async cancel(@Param('cron') cronExp: string, @CurrentUser() currentUser: User) {
-    return this.bookingService.cancel(currentUser, cronExp);
+  async cancel() {
+    // TODO
   }
 }
