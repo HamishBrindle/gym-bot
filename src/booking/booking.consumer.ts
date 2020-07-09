@@ -12,6 +12,7 @@ export class BookingConsumer {
 
   @Process('golds')
   async golds(queueJob: Job<IGoldsGymArguments>) {
+    console.log('Executing task: "golds" - queueJob :>> ', queueJob);
     await reserveGolds(queueJob.data);
     return {};
   }

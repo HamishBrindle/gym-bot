@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AccountsModule } from 'src/accounts/accounts.module';
 import { UsersModule } from 'src/users/users.module';
 import { BullModule } from '@nestjs/bull';
 import { LoggerModule } from 'src/logger/logger.module';

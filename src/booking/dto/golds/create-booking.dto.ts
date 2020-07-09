@@ -1,17 +1,13 @@
 import { IsString, IsArray } from 'class-validator';
-import { Booking } from 'src/shared/types/booking.type';
+import { ICreateBooking } from 'src/booking/interfaces/create-booking.interface';
 import { QueueOptionsDto } from '../queue-options.dto';
 
-export class CreateBookingDto extends QueueOptionsDto {
-  @IsString()
-  readonly type!: Booking;
-
+export class GoldsCreateBookingDto extends QueueOptionsDto implements ICreateBooking {
   @IsString()
   readonly time!: string;
 
-  @IsString()
   @IsArray()
-  readonly days?: (string|number)[];
+  readonly days!: (string|number)[];
 
   @IsString()
   readonly username!: string;

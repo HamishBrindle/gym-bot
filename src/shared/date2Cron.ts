@@ -94,7 +94,9 @@ function date2cron(time: string, days: (number|string)[] = [], options = default
 
   // Ensure the days of the week provided are valid and in range of 0 - 6
   if (days.length) {
-    const validDays = days.every((d) => parseInt(d, 10) <= 6 && parseInt(d, 10) >= 0);
+    const validDays = days.every(
+      (d) => parseInt(d as string, 10) <= 6 && parseInt(d as string, 10) >= 0,
+    );
     if (!validDays) {
       console.error('Unable to use `days` params - Weekdays must be within 0 - 6');
       return '';

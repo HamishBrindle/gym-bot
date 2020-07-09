@@ -6,7 +6,10 @@ import constants from 'src/shared/constants';
 import { User } from 'src/users/users.entity';
 import { Booking } from 'src/shared/types/booking.type';
 import { LoggerService } from 'src/logger/logger.service';
-import { CreateBookingDto } from './dto/golds/create-booking.dto';
+import { FindOneBooking } from './dto/find-one-booking.dto';
+import { ICreateBooking } from './interfaces/create-booking.interface';
+import { IUpdateBooking } from './interfaces/update-booking.interface';
+import { DestroyBookingDto } from './dto/destroy-booking.dto';
 
 /**
  * Create a unique job ID for a queue task to be fetched later
@@ -16,7 +19,8 @@ import { CreateBookingDto } from './dto/golds/create-booking.dto';
  * @param cronExpression
  */
 function createJobId(user: User, type: string, cronExpression: string): string {
-  return `${user.id}|${type}|${cronExpression}`.replace(' ', '-');
+  if (!user || !type || !cronExpression) throw Error('Invalid parameters');
+  return `${user.id}|${type}|${cronExpression}`.replace(/\s/g, '_');
 }
 
 @Injectable()
@@ -95,45 +99,35 @@ export class BookingService implements OnModuleInit {
     });
   }
 
-  /**
-   * Create a new Booking
-   *
-   * @param user
-   * @param createBookingDto
-   */
-  async create(user: User, createBookingDto: CreateBookingDto) {
+  async create<T extends ICreateBooking>(user: User, type: Booking, args: T) {
     const defaultTimezone = constants.defaults.tz;
-    const cron = date2cron(createBookingDto.time, createBookingDto.days, {
-      tz: createBookingDto.tz ?? defaultTimezone,
-      offset: ['hours', -72],
+    const cron = date2cron(args.time, args.days, {
+      tz: args.tz ?? defaultTimezone,
+      offset: ['hours', -72], // TODO: Move `offset` to request body
     });
 
-    const jobId = createJobId(user, createBookingDto.type, cron);
+    const jobId = createJobId(user, type, cron);
 
     const existing = await this.bookingQueue.getJob(jobId);
     if (existing) {
       throw Error('A job with this ID already exists in the queue');
     }
 
-    return this.bookingQueue.add(createBookingDto.type, {
-      time: createBookingDto.time,
-      days: createBookingDto.days,
-      username: createBookingDto.username,
-      password: createBookingDto.password,
-    }, {
+    this.logger.log(`Creating job for type "${type}" for User "${user.email}"`);
+
+    return this.bookingQueue.add(type, args, {
       jobId,
       repeat: {
         cron,
-        tz: createBookingDto.tz ?? defaultTimezone,
-        startDate: createBookingDto.startDate,
-        endDate: createBookingDto.endDate,
-        limit: createBookingDto.limit,
+        tz: args.tz ?? defaultTimezone,
+        startDate: args.startDate,
+        endDate: args.endDate,
+        limit: args.limit,
       },
     });
   }
 
-  async findOne(user: User, type: Booking, expression: string) {
-    const jobId = createJobId(user, type, expression);
+  async findOne({ jobId }: FindOneBooking) {
     const job = await this.bookingQueue.getJob(jobId);
     if (!job) {
       return null;
@@ -155,7 +149,19 @@ export class BookingService implements OnModuleInit {
     return jobs.filter((job) => job.id.toString().startsWith(`${user.id}|${type}`));
   }
 
-  // TODO: Update?
+  async update<T extends IUpdateBooking>(args: T) {
+    const job = await this.findOne(args);
+    if (!job) return null;
+    await job.update({
+      ...job.data,
+      ...args,
+    });
+    return true;
+  }
 
-  // TODO: Delete
+  async destroy(args: DestroyBookingDto) {
+    const job = await this.findOne(args);
+    if (!job) return null;
+    return job.remove();
+  }
 }
