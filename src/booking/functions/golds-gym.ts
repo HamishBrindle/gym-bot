@@ -118,7 +118,7 @@ export default async function reserveGolds(
       const d2 = await searchDates(page, datesSelector);
       idx = d2.indexOf(bookingDate);
       if (idx < 0) {
-        throw Error('Didnt fucking work man');
+        throw Error('Could not find the right timeslot using this date');
       }
     }
     const table = await page.$(`#classesList > table:nth-child(${idx + 2})`);
@@ -173,11 +173,9 @@ export default async function reserveGolds(
     });
     await page.waitFor(2000);
     await browser.close();
-    console.info('Made reservation:', `${bookingDate} at ${bookingTime}`);
     return `${bookingDate}|${bookingTime}`;
   } catch (error) {
-    console.error(error);
     await browser.close();
-    return error.message;
+    throw Error(error);
   }
 }

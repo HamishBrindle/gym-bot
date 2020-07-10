@@ -16,11 +16,6 @@ const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
     LoggerModule,
     BullModule.registerQueue({
       name: 'BOOKING_QUEUE',
-      defaultJobOptions: {
-        delay: 50,
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
       redis: {
         host: REDIS_HOST,
         port: parseInt(REDIS_PORT as string, 10),

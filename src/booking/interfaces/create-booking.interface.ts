@@ -8,6 +8,10 @@ export interface ICreateBooking {
    */
   days: (string|number)[];
   /**
+   * Offset - plus or minus a unit of time (ex. ['hours', -72])
+   */
+  offset?: [string, number]
+  /**
    * Cron string
    */
   cron?: string;

@@ -2,10 +2,19 @@ import moment from 'moment-timezone';
 import cronParser from 'cron-parser';
 
 type SupportedOffsetUnits = 'milliseconds'|'seconds'|'minutes'|'hours'|'days'|'weeks'|'months'|'years';
+type Options = {
+  /**
+   * Most likely leave this as `Etc/GMT` because our queue system
+   * will take care of the conversion for us from GMT. Honestly,
+   * don't change this.
+   */
+  tz?: string;
+  offset?: [SupportedOffsetUnits, number];
+};
 
-const defaultOptions = {
-  tz: 'America/Los_Angeles',
-  offset: ['hours', 0] as [SupportedOffsetUnits, number],
+const defaultOptions: Options = {
+  tz: 'Etc/GMT',
+  offset: ['hours', -72],
 };
 
 /**
@@ -26,8 +35,7 @@ function validateOptions(options: any) {
   if (!options.tz
     || typeof options.tz !== 'string'
   ) {
-    console.error('Invalid `tz` provided. Ensure your timezone is correct');
-    return false;
+    throw Error('Invalid `tz` provided. Ensure your timezone is correct');
   }
 
   const supportedOffsetUnits = [
@@ -46,11 +54,9 @@ function validateOptions(options: any) {
     || typeof options.offset[0] !== 'string'
     || typeof options.offset[1] !== 'number'
   ) {
-    console.error('Invalid `offset` provided. Ensure parameter is of type [string, number]');
-    return false;
+    throw Error('Invalid `offset` provided. Ensure parameter is of type [string, number]');
   } if (!supportedOffsetUnits.includes(options.offset[0])) {
-    console.error('Invalid `offset` provided. [0] Element must be supported:', supportedOffsetUnits);
-    return false;
+    throw Error(`Invalid \`offset\` provided. [0] Element must be supported: ${supportedOffsetUnits}`);
   }
 
   return true;
@@ -64,15 +70,16 @@ function validateOptions(options: any) {
  * @param {object} [options] Options specifying timezone, offset, etc. Optional.
  * @returns {string} Cron expression
  */
-function date2cron(time: string, days: (number|string)[] = [], options = defaultOptions) {
+function date2cron(time: string, days: (number|string)[] = [], options?: Options) {
+  if (!options) options = defaultOptions;
+
   const optionsValid = validateOptions(options);
 
   if (!optionsValid) {
-    console.error('Invalid options provided. Options: ', options);
-    return '';
+    throw Error(`Invalid options provided. Options: ${options}`);
   }
 
-  const { tz, offset } = options;
+  const { tz, offset } = options as Required<Options>;
   const [offsetUnit, offsetAmount] = offset;
   const offsetOperation = (offsetAmount >= 0) ? 'add' : 'subtract';
 
@@ -98,30 +105,24 @@ function date2cron(time: string, days: (number|string)[] = [], options = default
       (d) => parseInt(d as string, 10) <= 6 && parseInt(d as string, 10) >= 0,
     );
     if (!validDays) {
-      console.error('Unable to use `days` params - Weekdays must be within 0 - 6');
-      return '';
+      throw Error('Unable to use `days` params - Weekdays must be within 0 - 6');
     }
     day = days.join(',');
   }
 
   const expression = `${minute} ${hour} * * ${day}`;
 
-  try {
-    const parsedCron = cronParser.parseExpression(expression, { tz });
-    const n = moment(parsedCron.next().toISOString()).tz(tz);
+  const parsedCron = cronParser.parseExpression(expression, { tz });
+  const n = moment(parsedCron.next().toISOString()).tz(tz);
 
-    const a = m.format('hh:mm');
-    const b = n.format('hh:mm');
+  const a = m.format('hh:mm');
+  const b = n.format('hh:mm');
 
-    if (a === b) {
-      return expression;
-    }
-
-    return '';
-  } catch (error) {
-    console.error('Unable to parse expression:', error);
-    return '';
+  if (a === b) {
+    return expression;
   }
+
+  throw Error('Unable to ensure generated cron-expression is valid');
 }
 
 export default date2cron;
