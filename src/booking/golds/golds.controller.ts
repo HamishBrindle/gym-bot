@@ -1,14 +1,25 @@
 import {
-  Controller, UseGuards, Delete, Patch, Get, Body, Post, HttpException, HttpStatus, Param,
+  Controller,
+  UseGuards,
+  Delete,
+  Patch,
+  Get,
+  Body,
+  Post,
+  HttpException,
+  HttpStatus,
+  Inject,
+  forwardRef,
+  Param,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CurrentUser } from 'src/shared/decorators/user-info.decorator';
 import { User } from 'src/users/users.entity';
 import { Booking } from 'src/shared/types/booking.type';
 import { LoggerService } from 'src/logger/logger.service';
-import { BookingService } from './booking.service';
-import { GoldsUpdateBookingDto } from './dto/golds/update-booking.dto';
-import { GoldsCreateBookingDto } from './dto/golds/create-booking.dto';
+import { BookingService } from '../booking.service';
+import { GoldsUpdateBookingDto } from './dto/update-booking.dto';
+import { GoldsCreateBookingDto } from './dto/create-booking.dto';
 
 const success = (data: any, message = 'Success!') => ({
   status: 200,
@@ -16,9 +27,10 @@ const success = (data: any, message = 'Success!') => ({
   message,
 });
 
-@Controller('booking')
-export class BookingController {
+@Controller('booking/golds')
+export class GoldsController {
   constructor(
+    @Inject(forwardRef(() => BookingService))
     private readonly bookingService: BookingService,
     private readonly logger: LoggerService,
   ) {
@@ -26,7 +38,7 @@ export class BookingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('golds')
+  @Post()
   async create(@CurrentUser() user: User, @Body() body: GoldsCreateBookingDto) {
     this.logger.log(`create : params : ${JSON.stringify([user, body], null, 2)}`);
 
@@ -42,7 +54,7 @@ export class BookingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('golds')
+  @Get()
   async findAll(@CurrentUser() user: User) {
     this.logger.log(`findAll : params : ${JSON.stringify([user], null, 2)}`);
 
@@ -58,7 +70,7 @@ export class BookingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('golds/:id')
+  @Get(':id')
   async findOne(@Param('id') jobId: string) {
     this.logger.log(`findOne : params : ${JSON.stringify([jobId], null, 2)}`);
 
@@ -73,7 +85,7 @@ export class BookingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Patch('golds/:id')
+  @Patch(':id')
   async update(@Body() body: GoldsUpdateBookingDto, @Param('id') jobId: string) {
     this.logger.log(`update : params : ${JSON.stringify([body, jobId], null, 2)}`);
 
@@ -88,13 +100,14 @@ export class BookingController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete('golds/:id')
+  @Delete(':id')
   async destroy(@Param('id') jobId: string) {
     this.logger.log(`destroy : params : ${JSON.stringify([jobId], null, 2)}`);
+
     try {
-      const response = await this.bookingService.destroy({ jobId });
-      this.logger.log(`destroy : response: ${JSON.stringify(response, null, 2)}`);
-      return success(null, `Successfully deleted Booking, "${jobId}"`);
+      await this.bookingService.destroy({ jobId });
+      this.logger.log('destroy : success!');
+      return success({ jobId }, `Successfully deleted Booking, "${jobId}"`);
     } catch (error) {
       this.logger.error(error.message, error.stack);
       throw new HttpException('Server Error', HttpStatus.INTERNAL_SERVER_ERROR);

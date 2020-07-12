@@ -10,7 +10,7 @@ export interface ICreateBooking {
   /**
    * Offset - plus or minus a unit of time (ex. ['hours', -72])
    */
-  offset?: [string, number]
+  offset?: [SupportedOffsetUnits, number]
   /**
    * Cron string
    */
@@ -40,3 +40,5 @@ export interface ICreateBooking {
    */
   count?: number;
 }
+
+export type SupportedOffsetUnits = 'milliseconds'|'seconds'|'minutes'|'hours'|'days'|'weeks'|'months'|'years';

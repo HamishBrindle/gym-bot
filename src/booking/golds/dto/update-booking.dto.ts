@@ -1,6 +1,6 @@
 import { IsString, IsArray, IsOptional } from 'class-validator';
 import { IUpdateBooking } from 'src/booking/interfaces/update-booking.interface';
-import { QueueOptionsDto } from '../queue-options.dto';
+import { QueueOptionsDto } from '../../dto/queue-options.dto';
 
 export class GoldsUpdateBookingDto extends QueueOptionsDto implements IUpdateBooking {
   @IsString()

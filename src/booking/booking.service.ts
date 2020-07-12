@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue, Job } from 'bull';
+import {
+  Queue, Job, CronRepeatOptions, EveryRepeatOptions,
+} from 'bull';
 import date2cron from 'src/shared/date2Cron';
 import constants from 'src/shared/constants';
 import { User } from 'src/users/users.entity';
@@ -18,13 +20,41 @@ export class BookingService implements OnModuleInit {
     this.logger.setContext('BookingService');
   }
 
+  /**
+   * Create a new Booking job for a User
+   *
+   * @param user
+   * @param type  Which booking module we're using (ex. 'golds', etc)
+   * @param args  Module-specific arguments
+   */
   async create<T extends ICreateBooking>(user: User, type: Booking, args: T) {
     const defaultTimezone = constants.defaults.tz;
-    const cron = date2cron(args.time, args.days);
+    const cron = date2cron(args.time, args.days, {
+      offset: args.offset,
+    });
+
+    // ! Don't want to spend more time figuring out why it won't let
+    // ! me set the `jobId` manually - gotta ghetto-query to ensure
+    // ! we're not setting duplicate cron-jobs for one expression
+    const jobs = await this.find(user, type);
+    // @ts-ignore - For some reason there's no `cron` on `opts.repeat`
+    const found = jobs.find(
+      (job) => (job.opts.repeat as CustomRepeatOptions).cron === cron,
+    );
+
+    if (found) throw Error('Unable to add another Booking job with the same cron-expression');
+
+    /**
+     * Custom args to include User object
+     */
+    const params = {
+      ...args,
+      userId: user.id,
+    };
 
     this.logger.log(`Creating a Booking with type "${type}" for User "${user.email}"`);
 
-    return this.bookingQueue.add(type, args, {
+    return this.bookingQueue.add(type, params, {
       attempts: 1,
       repeat: {
         cron,
@@ -38,6 +68,12 @@ export class BookingService implements OnModuleInit {
     });
   }
 
+  /**
+   * Find a single Booking job using it's unique ID
+   *
+   * @param args
+   * @param args.jobId
+   */
   async findOne({ jobId }: { jobId: string }) {
     const job = await this.bookingQueue.getJob(jobId);
     if (!job) {
@@ -46,6 +82,13 @@ export class BookingService implements OnModuleInit {
     return job;
   }
 
+  /**
+   * Find all the Booking jobs related to a User (ghetto query)
+   * from the Booking Queue
+   *
+   * @param user
+   * @param type
+   */
   async find(user: User, type: Booking) {
     const jobs = await this.bookingQueue.getJobs([
       'active',
@@ -56,14 +99,18 @@ export class BookingService implements OnModuleInit {
       'waiting',
     ]);
 
-    this.logger.debug(`Jobs found before "type" filtering: ${JSON.stringify(jobs, null, 2)}`);
-
-    if (!jobs || !jobs.length) {
-      throw Error(`Unable to find any Bookings with type of "${type}"`);
-    }
-    return jobs.filter((job) => job.data.username === user.email);
+    return (!jobs || !jobs.length)
+      ? []
+      : jobs.filter((job) => job.data.userId === user.id && job.name === type);
   }
 
+  /**
+   * Update a Booking job
+   *
+   * TODO: Not sure we've even tested this yet
+   *
+   * @param args
+   */
   async update<T extends IUpdateBooking>(args: T) {
     const job = await this.findOne(args);
     if (!job) {
@@ -76,6 +123,12 @@ export class BookingService implements OnModuleInit {
     return true;
   }
 
+  /**
+   * Destroy a specific Booking job
+   *
+   * @param args
+   * @param args.jobId Unique job ID in queue
+   */
   async destroy({ jobId }: { jobId: string }) {
     const job = await this.findOne({ jobId });
     if (!job) {
@@ -154,3 +207,11 @@ export class BookingService implements OnModuleInit {
     });
   }
 }
+
+/**
+ * Custom type for RepeatOptions to add the `cron` field to available
+ * options
+ */
+type CustomRepeatOptions = (CronRepeatOptions | EveryRepeatOptions) & {
+  cron: string;
+};

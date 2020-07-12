@@ -1,20 +1,10 @@
 import moment from 'moment-timezone';
 import cronParser from 'cron-parser';
-
-type SupportedOffsetUnits = 'milliseconds'|'seconds'|'minutes'|'hours'|'days'|'weeks'|'months'|'years';
-type Options = {
-  /**
-   * Most likely leave this as `Etc/GMT` because our queue system
-   * will take care of the conversion for us from GMT. Honestly,
-   * don't change this.
-   */
-  tz?: string;
-  offset?: [SupportedOffsetUnits, number];
-};
+import { SupportedOffsetUnits } from 'src/booking/interfaces/create-booking.interface';
 
 const defaultOptions: Options = {
   tz: 'Etc/GMT',
-  offset: ['hours', -72],
+  offset: ['hours', 0],
 };
 
 /**
@@ -92,6 +82,8 @@ function date2cron(time: string, days: (number|string)[] = [], options?: Options
     return '';
   }
 
+  // TODO: Apply offset to the dates
+
   let minute = m.minute();
   let hour = m.hour();
   let day = '*';
@@ -126,3 +118,13 @@ function date2cron(time: string, days: (number|string)[] = [], options?: Options
 }
 
 export default date2cron;
+
+type Options = {
+  /**
+   * Most likely leave this as `Etc/GMT` because our queue system
+   * will take care of the conversion for us from GMT. Honestly,
+   * don't change this.
+   */
+  tz?: string;
+  offset?: [SupportedOffsetUnits, number];
+};

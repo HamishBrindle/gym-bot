@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from 'src/users/users.module';
-import { BullModule } from '@nestjs/bull';
 import { LoggerModule } from 'src/logger/logger.module';
-import { BookingController } from './booking.controller';
+import { BullModule } from '@nestjs/bull';
 import { BookingService } from './booking.service';
 import { BookingConsumer } from './booking.consumer';
+import { GoldsModule } from './golds/golds.module';
 
 const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
 
@@ -22,8 +22,8 @@ const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
         password: REDIS_PASSWORD,
       },
     }),
+    forwardRef(() => GoldsModule),
   ],
-  controllers: [BookingController],
   providers: [BookingService, BookingConsumer],
   exports: [BookingService],
 })
