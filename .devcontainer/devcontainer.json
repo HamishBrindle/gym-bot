@@ -32,7 +32,8 @@
 		"gruntfuggly.todo-tree",
 		"ms-vscode.vscode-typescript-next",
 		"aaron-bond.better-comments",
-		"bierner.lit-html",
+    "bierner.lit-html",
+    "octref.vetur",
 		"dbaeumer.vscode-eslint",
 		"donjayamanne.githistory",
 		"eamodio.gitlens",
@@ -40,7 +41,7 @@
 		"xabikos.javascriptsnippets",
 		"prisma.vscode-graphql",
 		"ms-azuretools.vscode-docker",
-	]
+	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -52,7 +53,7 @@
 	// "shutdownAction": "none",
 
 	// Uncomment the next line to run commands after the container is created - for example installing git.
-	// "postCreateCommand": "apt-get update && apt-get install -y git",
+	"postCreateCommand": "npm install -g @nestjs/cli",
 
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"

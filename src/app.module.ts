@@ -4,11 +4,10 @@ import { ConfigModule } from '@nestjs/config';
 import { Connection } from 'typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { BookingModule } from './booking/booking.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { JobsModule } from './jobs/jobs.module';
-import { AccountsModule } from './accounts/accounts.module';
+import { LoggerModule } from './logger/logger.module';
+import { GoldsModule } from './booking/golds/golds.module';
 
 // @ts-ignore - Too lazy to declare
 import ormconfig from '../ormconfig';
@@ -17,14 +16,13 @@ import ormconfig from '../ormconfig';
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot(ormconfig),
-    BookingModule,
     AuthModule,
     UsersModule,
-    JobsModule,
-    AccountsModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
     }),
+    LoggerModule,
+    GoldsModule,
   ],
   controllers: [],
   providers: [],

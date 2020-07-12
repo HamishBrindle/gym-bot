@@ -1,16 +1,30 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JobsModule } from 'src/jobs/jobs.module';
-import { AccountsModule } from 'src/accounts/accounts.module';
 import { UsersModule } from 'src/users/users.module';
-import { BookingController } from './booking.controller';
+import { LoggerModule } from 'src/logger/logger.module';
+import { BullModule } from '@nestjs/bull';
 import { BookingService } from './booking.service';
-import { BookingClient } from './booking.client';
+import { BookingConsumer } from './booking.consumer';
+import { GoldsModule } from './golds/golds.module';
+
+const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
 
 @Module({
-  imports: [ConfigModule, JobsModule, AccountsModule, UsersModule],
-  controllers: [BookingController],
-  providers: [BookingService, BookingClient.createProvider()],
+  imports: [
+    ConfigModule,
+    UsersModule,
+    LoggerModule,
+    BullModule.registerQueue({
+      name: 'BOOKING_QUEUE',
+      redis: {
+        host: REDIS_HOST,
+        port: parseInt(REDIS_PORT as string, 10),
+        password: REDIS_PASSWORD,
+      },
+    }),
+    forwardRef(() => GoldsModule),
+  ],
+  providers: [BookingService, BookingConsumer],
   exports: [BookingService],
 })
 export class BookingModule {}

@@ -31,5 +31,15 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
 
+  redis:
+    container_name: gym-bot-redis
+    image: redis:latest
+    restart: always
+    networks:
+      - webnet
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
 networks:
   webnet:
