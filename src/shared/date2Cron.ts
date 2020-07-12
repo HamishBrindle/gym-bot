@@ -62,12 +62,9 @@ function applyOffset(day: string|number, offset: [SupportedOffsetUnits, number])
     d = parseInt(day as string, 10);
   }
 
-  console.log('offset :>> ', offset);
-
   switch (offset[0]) {
     case 'days': {
       const r = Math.abs(offset[1]) % 7;
-      console.log('r :>> ', r);
       if (offset[1] >= 0) {
         const s = d + r;
         return (s > 6) ? s - 7 : s;
@@ -129,10 +126,7 @@ function date2cron(time: string, days: (number|string)[] = [], options?: Options
       throw Error('Unable to use `days` params - Weekdays must be within 0 - 6');
     }
     days.forEach((d, index) => {
-      const o = applyOffset(d, offset);
-      console.log('d :>> ', d);
-      console.log('o :>> ', o);
-      days[index] = o;
+      days[index] = applyOffset(d, offset);
     });
     day = days.join(',');
   }
