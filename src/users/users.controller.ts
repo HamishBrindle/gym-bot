@@ -13,9 +13,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get()
   async find() {
-    return this.usersService.find({
-      relations: ['account'],
-    });
+    return this.usersService.find();
   }
 
   @UseGuards(JwtAuthGuard)
