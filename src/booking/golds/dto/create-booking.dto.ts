@@ -30,5 +30,5 @@ export class GoldsCreateBookingDto extends QueueOptionsDto implements ICreateBoo
   /**
    * Offset - plus or minus a unit of time (ex. ['hours', -72])
    */
-  offset: [SupportedOffsetUnits, number] = ['hours', -72];
+  offset: [SupportedOffsetUnits, number] = ['days', -3];
 }

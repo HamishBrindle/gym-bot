@@ -29,6 +29,7 @@ export class BookingService implements OnModuleInit {
    */
   async create<T extends ICreateBooking>(user: User, type: Booking, args: T) {
     const defaultTimezone = constants.defaults.tz;
+    console.log('args :>> ', args);
     const cron = date2cron(args.time, args.days, {
       offset: args.offset,
     });

@@ -41,4 +41,12 @@ export interface ICreateBooking {
   count?: number;
 }
 
-export type SupportedOffsetUnits = 'milliseconds'|'seconds'|'minutes'|'hours'|'days'|'weeks'|'months'|'years';
+export type SupportedOffsetUnits =
+  |'days';
+  // |'milliseconds'
+  // |'seconds'
+  // |'minutes'
+  // |'hours'
+  // |'weeks'
+  // |'months'
+  // |'years';

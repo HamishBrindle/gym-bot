@@ -4,7 +4,7 @@ import { SupportedOffsetUnits } from 'src/booking/interfaces/create-booking.inte
 
 const defaultOptions: Options = {
   tz: 'Etc/GMT',
-  offset: ['hours', 0],
+  offset: ['days', 0],
 };
 
 /**
@@ -29,14 +29,14 @@ function validateOptions(options: any) {
   }
 
   const supportedOffsetUnits = [
-    'milliseconds',
-    'seconds',
-    'minutes',
-    'hours',
     'days',
-    'weeks',
-    'months',
-    'years',
+    // 'milliseconds',
+    // 'seconds',
+    // 'minutes',
+    // 'hours',
+    // 'weeks',
+    // 'months',
+    // 'years',
   ];
 
   if (!options.offset
@@ -50,6 +50,35 @@ function validateOptions(options: any) {
   }
 
   return true;
+}
+
+/**
+ * @param day
+ * @param offset
+ */
+function applyOffset(day: string|number, offset: [SupportedOffsetUnits, number]) {
+  let d = day;
+  if (typeof d === 'string') {
+    d = parseInt(day as string, 10);
+  }
+
+  console.log('offset :>> ', offset);
+
+  switch (offset[0]) {
+    case 'days': {
+      const r = Math.abs(offset[1]) % 7;
+      console.log('r :>> ', r);
+      if (offset[1] >= 0) {
+        const s = d + r;
+        return (s > 6) ? s - 7 : s;
+      }
+      const s = d - r;
+      return (s < 0) ? s + 7 : s;
+    }
+    default: {
+      throw Error(`Cannot apply offset with unknown/unsupported unit: ${offset[0]}`);
+    }
+  }
 }
 
 /**
@@ -99,6 +128,12 @@ function date2cron(time: string, days: (number|string)[] = [], options?: Options
     if (!validDays) {
       throw Error('Unable to use `days` params - Weekdays must be within 0 - 6');
     }
+    days.forEach((d, index) => {
+      const o = applyOffset(d, offset);
+      console.log('d :>> ', d);
+      console.log('o :>> ', o);
+      days[index] = o;
+    });
     day = days.join(',');
   }
 

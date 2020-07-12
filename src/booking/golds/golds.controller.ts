@@ -40,6 +40,11 @@ export class GoldsController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async create(@CurrentUser() user: User, @Body() body: GoldsCreateBookingDto) {
+    // Specific offset logic for Golds gym Bookings
+    if (!body?.offset) {
+      body.offset = ['days', -3];
+    }
+
     this.logger.log(`create : params : ${JSON.stringify([user, body], null, 2)}`);
 
     try {
