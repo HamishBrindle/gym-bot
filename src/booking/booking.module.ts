@@ -21,6 +21,10 @@ const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
         port: parseInt(REDIS_PORT as string, 10),
         password: REDIS_PASSWORD,
       },
+      defaultJobOptions: {
+        removeOnComplete: false,
+        removeOnFail: false,
+      },
     }),
     forwardRef(() => GoldsModule),
   ],

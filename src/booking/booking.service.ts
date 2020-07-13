@@ -64,8 +64,6 @@ export class BookingService implements OnModuleInit {
         endDate: args.endDate,
         limit: args.limit,
       },
-      removeOnComplete: true,
-      removeOnFail: true,
     });
   }
 
