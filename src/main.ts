@@ -19,9 +19,11 @@ async function bootstrap() {
   );
   app.setGlobalPrefix('api');
   await app.listen(process.env.SERVER_INT_PORT ?? 4224).then((server: Server) => {
+    /* eslint-disable no-console */
     console.info();
     console.info('Blast-off 🚀 >> Server.address :', server.address()?.valueOf());
     console.info();
+    /* eslint-enable no-console */
   });
 }
 

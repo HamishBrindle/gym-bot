@@ -32,4 +32,4 @@ else
 fi
 
 # Pull and start the specified version of the server
-docker run -p 80:4224 --name gym-bot_server --detach --env-file ~/.env hamishbrindle/gym-bot:$1 npm run start:prod
+docker run -p 80:4224 --network=gym-bot --name gym-bot_server --detach --env-file ~/.env hamishbrindle/gym-bot:$1 npm run start:prod
