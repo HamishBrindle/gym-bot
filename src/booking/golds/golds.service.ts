@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import puppeteer from 'puppeteer';
 import Bluebird from 'bluebird';
 import moment from 'moment-timezone';
+import { LoggerService } from 'src/logger/logger.service';
 
 /**
  * Get text from DOM element
@@ -33,6 +34,12 @@ async function searchDates(page: puppeteer.Page, selector: string) {
 
 @Injectable()
 export class GoldsService {
+  constructor(
+    private readonly logger: LoggerService,
+  ) {
+    this.logger.setContext('GoldsService');
+  }
+
   /**
    * Entry to Gold's login
    */
@@ -51,20 +58,21 @@ export class GoldsService {
     args: {
       username: string;
       password: string;
-      date: string;
       time: string;
     },
-  ): Promise<string> {
+  ): Promise<void> {
     const {
       username,
       password,
-      date,
       time,
     } = args;
 
-    const bookingMoment = moment(date, 'MM/DD/YYYY').locale('en-ca');
-    const bookingDate = bookingMoment.format('MM/DD/YYYY');
-    const bookingTime = time;
+    this.logger.log(`Reservation parameters: ${JSON.stringify(args)}`);
+
+    const bookingDate = moment().add(72, 'hours').format('MM/DD/YYYY');
+    const bookingTime = moment(time, 'H:mm:ss').format('h:mma');
+
+    this.logger.log(`🙏 Attempting to make reservation on ${bookingDate} at ${bookingTime}`);
 
     // Initialize headless browser
     const browser = await puppeteer.launch({
@@ -111,7 +119,7 @@ export class GoldsService {
         const d2 = await searchDates(page, datesSelector);
         idx = d2.indexOf(bookingDate);
         if (idx < 0) {
-          throw Error('Could not find the right timeslot using this date');
+          throw Error(`Could not find timeslots on this date: ${bookingDate}`);
         }
       }
       const table = await page.$(`#classesList > table:nth-child(${idx + 2})`);
@@ -166,7 +174,8 @@ export class GoldsService {
       });
       await page.waitFor(2000);
       await browser.close();
-      return `${bookingDate}|${bookingTime}`;
+
+      this.logger.log(`🎉🎊 Successfully booked Gold's Gym appointment on ${bookingDate} at ${bookingTime}`);
     } catch (error) {
       await browser.close();
       throw Error(error);
