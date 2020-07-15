@@ -28,6 +28,12 @@ export class GoldsCreateBookingDto extends QueueOptionsDto implements ICreateBoo
   readonly password!: string;
 
   /**
+   * Timezone to apply
+   */
+  @IsString()
+  readonly tz?: string;
+
+  /**
    * Offset - plus or minus a unit of time (ex. ['hours', -72])
    */
   offset: [SupportedOffsetUnits, number] = ['days', -3];

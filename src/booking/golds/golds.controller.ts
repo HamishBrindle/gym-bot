@@ -20,6 +20,7 @@ import { LoggerService } from 'src/logger/logger.service';
 import { BookingService } from '../booking.service';
 import { GoldsUpdateBookingDto } from './dto/update-booking.dto';
 import { GoldsCreateBookingDto } from './dto/create-booking.dto';
+import { GoldsService } from './golds.service';
 
 const success = (data: any, message = 'Success!') => ({
   status: 200,
@@ -32,6 +33,7 @@ export class GoldsController {
   constructor(
     @Inject(forwardRef(() => BookingService))
     private readonly bookingService: BookingService,
+    private readonly goldsService: GoldsService,
     private readonly logger: LoggerService,
   ) {
     this.logger.setContext('BookingController');
@@ -117,5 +119,25 @@ export class GoldsController {
       this.logger.error(error.message, error.stack);
       throw new HttpException('Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete()
+  async destroyAll(@CurrentUser() user: User) {
+    this.logger.log(`Destroying all jobs for User, ${user.email}`);
+
+    try {
+      const result = await this.bookingService.destroyAll(user, 'golds');
+      return success(result, `Successfully deleted all Gold's Bookings for ${user.email}`);
+    } catch (error) {
+      this.logger.error(error.message, error.stack);
+      throw new HttpException('Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('debug')
+  async debug(@Body() args: any) {
+    return this.goldsService.reserve(args);
   }
 }

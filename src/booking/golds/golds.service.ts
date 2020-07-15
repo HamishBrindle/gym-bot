@@ -49,27 +49,29 @@ export class GoldsService {
    * Reserve an appointment at the gym
    *
    * @param args
-   * @param args.date Date in the format of MM/DD/YYYY
    * @param args.time Time in the format of HH:MM(am|pm)
    * @param args.username
    * @param args.password
+   * @param args.tz
    */
   public async reserve(
     args: {
       username: string;
       password: string;
       time: string;
+      tz: string,
     },
   ): Promise<void> {
     const {
       username,
       password,
       time,
+      tz,
     } = args;
 
     this.logger.log(`Reservation parameters: ${JSON.stringify(args)}`);
 
-    const bookingDate = moment().add(72, 'hours').format('MM/DD/YYYY');
+    const bookingDate = moment().tz(tz).add(72, 'hours').format('MM/DD/YYYY');
     const bookingTime = moment(time, 'H:mm:ss').format('h:mma');
 
     this.logger.log(`🙏 Attempting to make reservation on ${bookingDate} at ${bookingTime}`);
@@ -128,6 +130,7 @@ export class GoldsService {
       }
 
       const classesForDate = await table.$$('tbody > tr.classes');
+
       const [enrollButton] = await Bluebird.filter(classesForDate, async (classForDate) => {
       // Get the time of the class from the 1st TD element
         const classTime = await classForDate.$('td:nth-child(1)');
@@ -135,7 +138,10 @@ export class GoldsService {
         const innerTextHandle = await classTime.getProperty('innerText');
         const innerTextJsonValue = await innerTextHandle.jsonValue();
         const innerText = getText(innerTextJsonValue);
+
         if (!innerText.startsWith(bookingTime)) return false;
+
+        this.logger.debug(`Found class time of ${innerText}!`);
 
         // Get the type of event from the 3rd TD element
         const eventNameElement = await classForDate.$('td:nth-child(3) > a.eventName');
@@ -145,8 +151,14 @@ export class GoldsService {
         const eventName = getText(eventNameJsonValue);
         if (!eventName.includes('Workout')) return false;
 
-        const enrollButtonElement = await classForDate.$('td:nth-child(2) > button.enrollEvent');
+        this.logger.debug(`Found class type of "${eventName}"!`);
+
+        const enrollButtonElement = await classForDate.$('td > button');
+
         if (!enrollButtonElement) return false;
+
+        this.logger.debug('Found enroll button!');
+
         return true;
       });
 
@@ -158,15 +170,16 @@ export class GoldsService {
       await page.waitForSelector('#scheduleEventDialog', {
         timeout: 10000,
       });
-      const agreeInputSelector = '#agreeToTerms';
-      const agreeInput = await page.$(agreeInputSelector);
+
+      const agreeInput = await page.$('#agreeToTerms');
       if (!agreeInput) {
-        throw Error('Unable to find input field for "Agree to Terms"');
+        throw Error('Unable to find checkbox for "Agree to Terms"');
       }
       await agreeInput.click();
+
       const scheduleEventDialogButton = await page.$('body > div.ui-dialog.ui-widget.ui-widget-content.ui-corner-all.ui-dialog-buttons > div.ui-dialog-buttonpane.ui-widget-content.ui-helper-clearfix > div > button.calltoaction');
       if (!scheduleEventDialogButton) {
-        throw Error('Unable to find submit button for agreeing to terms');
+        throw Error('Unable to find submit button for "Agree to Terms"');
       }
       await page.waitFor(1000);
       await scheduleEventDialogButton.click({
@@ -192,4 +205,5 @@ export interface IGoldsGymArguments {
   date: string;
   time: string;
   url: string;
+  tz: string;
 }

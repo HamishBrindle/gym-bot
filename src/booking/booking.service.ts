@@ -8,6 +8,7 @@ import constants from 'src/shared/constants';
 import { User } from 'src/users/users.entity';
 import { Booking } from 'src/shared/types/booking.type';
 import { LoggerService } from 'src/logger/logger.service';
+import Bluebird from 'bluebird';
 import { ICreateBooking } from './interfaces/create-booking.interface';
 import { IUpdateBooking } from './interfaces/update-booking.interface';
 
@@ -51,9 +52,10 @@ export class BookingService implements OnModuleInit {
     const params = {
       ...args,
       userId: user.id,
+      tz: args.tz ?? defaultTimezone,
     };
 
-    this.logger.log(`Creating a Booking with type "${type}" for User "${user.email}"`);
+    this.logger.log(`Creating a Booking with type "${type}" for User "${user.email}" with params: ${JSON.stringify(params)}`);
 
     return this.bookingQueue.add(type, params, {
       attempts: 1,
@@ -134,6 +136,18 @@ export class BookingService implements OnModuleInit {
       throw Error(`Unable to delete Booking with provided id, "${jobId}"`);
     }
     return job.remove();
+  }
+
+  /**
+   * Destroy all the Booking jobs for this User and Booking type
+   *
+   * @param user
+   * @param type
+   */
+  async destroyAll(user: User, type: Booking) {
+    const jobs = await this.find(user, type);
+    const jobIds = jobs.map((job) => job.id);
+    return Bluebird.mapSeries(jobIds, (jobId) => this.bookingQueue.removeJobs(jobId as string));
   }
 
   /**
