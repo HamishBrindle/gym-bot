@@ -71,7 +71,12 @@ export class GoldsService {
 
     this.logger.log(`Reservation parameters: ${JSON.stringify(args)}`);
 
-    const bookingDate = moment().tz(tz).add(72, 'hours').format('MM/DD/YYYY');
+    const bookingDate = moment()
+      .utc()
+      .add(72, 'hours')
+      .tz(tz)
+      .format('MM/DD/YYYY');
+
     const bookingTime = moment(time, 'H:mm:ss').format('h:mma');
 
     this.logger.log(`🙏 Attempting to make reservation on ${bookingDate} at ${bookingTime}`);
