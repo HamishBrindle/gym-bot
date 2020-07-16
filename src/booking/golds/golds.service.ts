@@ -84,6 +84,7 @@ export class GoldsService {
     // Initialize headless browser
     const browser = await puppeteer.launch({
       headless: true,
+      defaultViewport: null,
       args: [
         '--disable-gpu',
         '--disable-dev-shm-usage',
@@ -136,7 +137,7 @@ export class GoldsService {
 
       const classesForDate = await table.$$('tbody > tr.classes');
 
-      const [enrollButton] = await Bluebird.filter(classesForDate, async (classForDate) => {
+      const [selectedRow] = await Bluebird.filter(classesForDate, async (classForDate) => {
       // Get the time of the class from the 1st TD element
         const classTime = await classForDate.$('td:nth-child(1)');
         if (!classTime) return false;
@@ -158,7 +159,7 @@ export class GoldsService {
 
         this.logger.debug(`Found class type of "${eventName}"!`);
 
-        const enrollButtonElement = await classForDate.$('td > button');
+        const enrollButtonElement = await classForDate.$('td.noprint.enrolledFull > button');
 
         if (!enrollButtonElement) return false;
 
@@ -167,30 +168,48 @@ export class GoldsService {
         return true;
       });
 
-      if (!enrollButton) {
+      if (!selectedRow) {
         throw Error('Unable to find the enroll button for this class');
       }
 
-      await enrollButton.click({ delay: 5 });
-      await page.waitForSelector('#scheduleEventDialog', {
+      await selectedRow.evaluate((el) => el.querySelector<HTMLElement>('td.noprint.enrolledFull > button')?.click());
+      await page.waitForSelector('body > div.ui-dialog.ui-widget.ui-widget-content.ui-corner-all.ui-dialog-buttons', {
         timeout: 10000,
       });
 
-      const agreeInput = await page.$('#agreeToTerms');
+      const agreeInputSelector = '#agreeToTerms';
+      const agreeInput = await page.$(agreeInputSelector);
       if (!agreeInput) {
-        throw Error('Unable to find checkbox for "Agree to Terms"');
+        throw Error('Unable to find input field for "Agree to Terms"');
       }
-      await agreeInput.click();
 
-      const scheduleEventDialogButton = await page.$('body > div.ui-dialog.ui-widget.ui-widget-content.ui-corner-all.ui-dialog-buttons > div.ui-dialog-buttonpane.ui-widget-content.ui-helper-clearfix > div > button.calltoaction');
+      // @ts-ignore
+      await page.$eval(agreeInputSelector, (el) => el.click());
+
+      // @ts-ignore
+      const isChecked = await agreeInput.evaluate((el) => el.checked);
+      if (!isChecked) throw Error('Unable to click checkbox before submitting');
+
+      const scheduleEventDialogButtonSelector = 'body > div.ui-dialog.ui-widget.ui-widget-content.ui-corner-all.ui-dialog-buttons > div.ui-dialog-buttonpane.ui-widget-content.ui-helper-clearfix > div > button.calltoaction';
+      const scheduleEventDialogButton = await page.$(scheduleEventDialogButtonSelector);
       if (!scheduleEventDialogButton) {
-        throw Error('Unable to find submit button for "Agree to Terms"');
+        throw Error('Unable to find submit button for agreeing to terms');
       }
+
       await page.waitFor(1000);
-      await scheduleEventDialogButton.click({
-        delay: 50,
-      });
-      await page.waitFor(2000);
+
+      // @ts-ignore
+      await page.$eval(scheduleEventDialogButtonSelector, (el) => el.click());
+
+      const confirmationSelector = '#content > div > div.large > strong';
+      await page.waitForSelector(confirmationSelector);
+      const confirmation = await page.$eval(
+        confirmationSelector,
+        (el) => el.innerHTML.toLocaleLowerCase(),
+      );
+
+      if (!confirmation.includes('thank you')) throw Error('Unable to get confirmation message');
+
       await browser.close();
 
       this.logger.log(`🎉🎊 Successfully booked Gold's Gym appointment on ${bookingDate} at ${bookingTime}`);
