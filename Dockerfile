@@ -51,7 +51,6 @@ RUN apt-get install -y \
 COPY package*.json ./
 
 RUN npm install --only=production
-RUN npm run seed
 
 COPY . .
 
