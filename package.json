@@ -19,14 +19,16 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "mysql:dev": "mysql --port $MYSQL_INT_PORT -u $MYSQL_ROOT_USER -p$MYSQL_ROOT_PASSWORD dev",
-    "mysql:dev:reset": "mysql --port $MYSQL_INT_PORT -u $MYSQL_ROOT_USER -p$MYSQL_ROOT_PASSWORD -e 'DROP DATABASE IF EXISTS dev; CREATE DATABASE dev CHARACTER SET utf8 COLLATE utf8_general_ci;'",
-    "mysql:test": "mysql --port $MYSQL_INT_PORT -u $MYSQL_ROOT_USER -p$MYSQL_ROOT_PASSWORD test",
-    "mysql:test:reset": "mysql --port $MYSQL_INT_PORT -u $MYSQL_ROOT_USER -p$MYSQL_ROOT_PASSWORD -e 'DROP DATABASE IF EXISTS test; CREATE DATABASE test CHARACTER SET utf8 COLLATE utf8_general_ci;'",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "generate": "graphql-codegen",
     "seed": "ts-node -r tsconfig-paths/register -r ts-node/register ./node_modules/typeorm-seeding/dist/cli.js seed -n ./ormconfig.js",
-    "seed:reset": "npm run mysql:dev:reset && npm run seed"
+    "seed:reset": "rm db/line.sqlite && npm run seed",
+    "aws:login": "aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 834491810670.dkr.ecr.us-west-1.amazonaws.com",
+    "aws:build": "npm run aws:login && npm run docker:build && npm run docker:tag && npm run docker:push",
+    "aws:deploy": "aws ecs update-service --cluster gym-bot-cluster --service gym-bot-service --force-new-deployment --region=us-west-1",
+    "docker:build": "docker build -t gym-bot .",
+    "docker:tag": "docker tag gym-bot:latest 834491810670.dkr.ecr.us-west-1.amazonaws.com/gym-bot:latest",
+    "docker:push": "docker push 834491810670.dkr.ecr.us-west-1.amazonaws.com/gym-bot:latest"
   },
   "dependencies": {
     "@nestjs/bull": "^0.1.1",
@@ -59,6 +61,7 @@
     "redis": "^3.0.2",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^6.5.4",
+    "sqlite3": "^5.0.0",
     "typeorm": "^0.2.25",
     "typeorm-seeding": "^1.6.1"
   },

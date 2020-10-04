@@ -22,7 +22,7 @@ const { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } = process.env;
         password: REDIS_PASSWORD,
       },
       defaultJobOptions: {
-        removeOnComplete: false,
+        removeOnComplete: true,
         removeOnFail: false,
       },
     }),

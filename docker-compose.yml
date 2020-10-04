@@ -8,28 +8,16 @@ services:
       target: development
     volumes:
       - .:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./node_modules:/usr/src/app/node_modules
+      - ./db:/usr/src/app/db
     ports:
-      - ${SERVER_EXT_PORT}:${SERVER_INT_PORT}
+      - ${PORT}:${PORT}
     env_file:
       - .env
     networks:
       - webnet
     depends_on:
-      - db
-
-  db:
-    container_name: gym-bot-db
-    image: mysql:5.7.26
-    restart: always
-    networks:
-      - webnet
-    ports:
-      - ${MYSQL_EXT_PORT}:${MYSQL_INT_PORT}
-    environment:
-      MYSQL_ROOT_USER: ${MYSQL_ROOT_USER}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      - redis
 
   redis:
     container_name: gym-bot-redis
@@ -39,7 +27,7 @@ services:
       - webnet
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
 
 networks:
   webnet:
