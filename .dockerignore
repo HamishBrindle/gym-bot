@@ -1,0 +1,11 @@
+# .devcontainer
+# .vscode
+# test
+# **/*/.gitkeep
+# .editorconfig
+# .eslintignore
+# .eslintrc.js
+# .prettierrc
+# docker-compose.yml
+# tsconfig.build.json
+# tsconfig.json
